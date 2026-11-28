@@ -7,7 +7,7 @@ import time
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
-import httpx
+import httpx2
 import pytest
 from testcontainers.core.container import DockerContainer
 from testcontainers.core.wait_strategies import LogMessageWaitStrategy
@@ -49,9 +49,9 @@ def _wait_until_ready(base_url: str, timeout: float = 90.0) -> None:
     last: Exception | None = None
     while time.monotonic() < deadline:
         try:
-            if httpx.get(f"{base_url}/api/v1/ready", timeout=5.0).status_code == 204:
+            if httpx2.get(f"{base_url}/api/v1/ready", timeout=5.0).status_code == 204:
                 return
-        except httpx.HTTPError as err:  # the port is not accepting connections yet
+        except httpx2.HTTPError as err:  # the port is not accepting connections yet
             last = err
         time.sleep(1.0)
     raise TimeoutError(f"{base_url} was not ready within {timeout}s") from last

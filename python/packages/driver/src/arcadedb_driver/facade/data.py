@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Any, Literal, TypeVar
 from urllib.parse import quote
 
-import httpx
+import httpx2
 
 from .._generated.models.begin_request import BeginRequest
 from .._generated.models.begin_request_isolation_level import BeginRequestIsolationLevel
@@ -299,30 +299,30 @@ class DataUrls:
     __slots__ = ("_base", "_command", "_name", "_query")
 
     def __init__(self) -> None:
-        self._base: httpx.URL | None = None
+        self._base: httpx2.URL | None = None
         self._name: str | None = None
-        self._query: httpx.URL
-        self._command: httpx.URL
+        self._query: httpx2.URL
+        self._command: httpx2.URL
 
-    def _resolve(self, http: httpx.Client | httpx.AsyncClient, database: str) -> None:
+    def _resolve(self, http: httpx2.Client | httpx2.AsyncClient, database: str) -> None:
         quoted = quote(str(database), safe="")
         self._query = http.build_request("POST", f"/api/v1/query/{quoted}").url
         self._command = http.build_request("POST", f"/api/v1/command/{quoted}").url
         self._base = http.base_url
         self._name = database
 
-    def query(self, http: httpx.Client | httpx.AsyncClient, database: str) -> httpx.URL:
+    def query(self, http: httpx2.Client | httpx2.AsyncClient, database: str) -> httpx2.URL:
         if self._base is not http.base_url or self._name != database:
             self._resolve(http, database)
         return self._query
 
-    def command(self, http: httpx.Client | httpx.AsyncClient, database: str) -> httpx.URL:
+    def command(self, http: httpx2.Client | httpx2.AsyncClient, database: str) -> httpx2.URL:
         if self._base is not http.base_url or self._name != database:
             self._resolve(http, database)
         return self._command
 
 
-def fast_envelope(response: httpx.Response) -> QueryEnvelope | None:
+def fast_envelope(response: httpx2.Response) -> QueryEnvelope | None:
     """The envelope of a plain `200` row result, read straight from the decoded JSON - or `None`.
 
     `None` means "this response is not the common case": the caller then runs the
@@ -344,10 +344,10 @@ def fast_envelope(response: httpx.Response) -> QueryEnvelope | None:
 
 
 def fast_envelope_from_bytes(status_code: int, content: bytes) -> QueryEnvelope | None:
-    """`fast_envelope` for a transport that has no `httpx.Response` (`_internal/http_client.py`).
+    """`fast_envelope` for a transport that has no `httpx2.Response` (`_internal/http_client.py`).
 
     The same rule on the same bytes: `None` means "not the common case", and the caller then builds an
-    `httpx.Response` from the answer and runs the generated parse on it.
+    `httpx2.Response` from the answer and runs the generated parse on it.
     """
     if status_code != 200:
         return None

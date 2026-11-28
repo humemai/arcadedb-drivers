@@ -2,8 +2,8 @@
 `iter_rows`: a request body that is generated while it is sent instead of built whole.
 
 No network and no server: every case goes through a small mock transport (`_SyncTransport`,
-`_AsyncTransport`, below) whose handler is given the real, unread `httpx.Request`. Its `stream`
-attribute tells a streamed body from a buffered one: a `bytes` body becomes `httpx.ByteStream` and
+`_AsyncTransport`, below) whose handler is given the real, unread `httpx2.Request`. Its `stream`
+attribute tells a streamed body from a buffered one: a `bytes` body becomes `httpx2.ByteStream` and
 carries a `Content-Length`; an iterator body becomes an iterator stream and carries
 `Transfer-Encoding: chunked`. The handler walks that stream chunk by chunk, the way a transport
 does, and records how many rows the caller's generator had produced at each step, which is how the
@@ -18,7 +18,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from dataclasses import dataclass, field
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from arcadedb_driver import ArcadeDBDatabase, ArcadeDBServer, AsyncArcadeDBDatabase, AsyncArcadeDBServer, iter_rows
 from arcadedb_driver._internal import batch_rows
@@ -51,7 +51,7 @@ class Counter:
 
 @dataclass
 class Seen:
-    headers: httpx.Headers = field(default_factory=httpx.Headers)
+    headers: httpx2.Headers = field(default_factory=httpx2.Headers)
     stream_type: type = object
     chunks: list[bytes] = field(default_factory=list)
     pulled_at_entry: int | None = None
@@ -62,44 +62,44 @@ class Seen:
         return b"".join(self.chunks)
 
 
-def _response(request: httpx.Request) -> httpx.Response:
+def _response(request: httpx2.Request) -> httpx2.Response:
     if request.headers.get("accept") == "application/x-ndjson":
-        return httpx.Response(200, content=(json.dumps({"summary": SUMMARY}) + "\n").encode())
-    return httpx.Response(200, json=SUMMARY)
+        return httpx2.Response(200, content=(json.dumps({"summary": SUMMARY}) + "\n").encode())
+    return httpx2.Response(200, json=SUMMARY)
 
 
-def _record_start(seen: Seen, request: httpx.Request, counter: Counter | None) -> None:
+def _record_start(seen: Seen, request: httpx2.Request, counter: Counter | None) -> None:
     seen.headers = request.headers
     seen.stream_type = type(request.stream)
     seen.pulled_at_entry = counter.pulled if counter else None
 
 
-class _SyncTransport(httpx.BaseTransport):
-    """Like `httpx.MockTransport`, except that the handler gets the request UNREAD:
+class _SyncTransport(httpx2.BaseTransport):
+    """Like `httpx2.MockTransport`, except that the handler gets the request UNREAD:
     `MockTransport.handle_request` calls `request.read()` first, which joins an iterator body into
     one `bytes` before any handler sees it and would hide exactly what these tests look at."""
 
-    def __init__(self, handler: Callable[[httpx.Request], httpx.Response]) -> None:
+    def __init__(self, handler: Callable[[httpx2.Request], httpx2.Response]) -> None:
         self._handler = handler
 
-    def handle_request(self, request: httpx.Request) -> httpx.Response:
+    def handle_request(self, request: httpx2.Request) -> httpx2.Response:
         return self._handler(request)
 
 
-class _AsyncTransport(httpx.AsyncBaseTransport):
+class _AsyncTransport(httpx2.AsyncBaseTransport):
     """The async twin of `_SyncTransport`."""
 
-    def __init__(self, handler: Callable[[httpx.Request], Awaitable[httpx.Response]]) -> None:
+    def __init__(self, handler: Callable[[httpx2.Request], Awaitable[httpx2.Response]]) -> None:
         self._handler = handler
 
-    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+    async def handle_async_request(self, request: httpx2.Request) -> httpx2.Response:
         return await self._handler(request)
 
 
 def sync_db(seen: Seen, counter: Counter | None = None) -> ArcadeDBDatabase:
-    def handle(request: httpx.Request) -> httpx.Response:
+    def handle(request: httpx2.Request) -> httpx2.Response:
         _record_start(seen, request, counter)
-        assert isinstance(request.stream, httpx.SyncByteStream)
+        assert isinstance(request.stream, httpx2.SyncByteStream)
         for chunk in request.stream:
             seen.chunks.append(chunk)
             if counter:
@@ -107,14 +107,14 @@ def sync_db(seen: Seen, counter: Counter | None = None) -> ArcadeDBDatabase:
         return _response(request)
 
     srv = ArcadeDBServer(base_url=BASE_URL)
-    srv.raw.set_httpx_client(httpx.Client(base_url=BASE_URL, transport=_SyncTransport(handle)))
+    srv.raw.set_httpx_client(httpx2.Client(base_url=BASE_URL, transport=_SyncTransport(handle)))
     return srv.db("mydb")
 
 
 def async_db(seen: Seen, counter: Counter | None = None) -> AsyncArcadeDBDatabase:
-    async def handle(request: httpx.Request) -> httpx.Response:
+    async def handle(request: httpx2.Request) -> httpx2.Response:
         _record_start(seen, request, counter)
-        assert isinstance(request.stream, httpx.AsyncByteStream)
+        assert isinstance(request.stream, httpx2.AsyncByteStream)
         async for chunk in request.stream:
             seen.chunks.append(chunk)
             if counter:
@@ -122,7 +122,7 @@ def async_db(seen: Seen, counter: Counter | None = None) -> AsyncArcadeDBDatabas
         return _response(request)
 
     srv = AsyncArcadeDBServer(base_url=BASE_URL)
-    srv.raw.set_async_httpx_client(httpx.AsyncClient(base_url=BASE_URL, transport=_AsyncTransport(handle)))
+    srv.raw.set_async_httpx_client(httpx2.AsyncClient(base_url=BASE_URL, transport=_AsyncTransport(handle)))
     return srv.db("mydb")
 
 
@@ -150,7 +150,7 @@ class TestWireSync:
     def test_the_default_path_is_still_one_buffered_body_with_a_content_length(self, fn: str) -> None:
         seen = Seen()
         run(sync_db(seen), fn, vertices=vertex_rows(3), edges=edge_rows(2))
-        assert seen.stream_type is httpx.ByteStream
+        assert seen.stream_type is httpx2.ByteStream
         assert seen.headers["content-length"] == str(len(old_payload()))
         assert "transfer-encoding" not in seen.headers
         assert seen.body == old_payload()
@@ -163,7 +163,7 @@ class TestWireSync:
     def test_the_body_is_streamed_and_chunked_not_a_bytes_object(self, fn: str) -> None:
         seen = Seen()
         run(sync_db(seen), fn, lines=iter_rows(vertex_rows(3), edge_rows(2)))
-        assert seen.stream_type is not httpx.ByteStream
+        assert seen.stream_type is not httpx2.ByteStream
         assert seen.headers["transfer-encoding"] == "chunked"
         assert "content-length" not in seen.headers
         assert seen.headers["content-type"] == "application/x-ndjson"
@@ -196,7 +196,7 @@ class TestWireAsync:
     async def test_the_default_path_is_still_one_buffered_body_with_a_content_length(self, fn: str) -> None:
         seen = Seen()
         await arun(async_db(seen), fn, vertices=vertex_rows(3), edges=edge_rows(2))
-        assert seen.stream_type is httpx.ByteStream
+        assert seen.stream_type is httpx2.ByteStream
         assert seen.headers["content-length"] == str(len(old_payload()))
         assert seen.body == old_payload()
 
@@ -208,7 +208,7 @@ class TestWireAsync:
     async def test_the_body_is_streamed_and_chunked_not_a_bytes_object(self, fn: str) -> None:
         seen = Seen()
         await arun(async_db(seen), fn, lines=iter_rows(vertex_rows(3), edge_rows(2)))
-        assert seen.stream_type is not httpx.ByteStream
+        assert seen.stream_type is not httpx2.ByteStream
         assert seen.headers["transfer-encoding"] == "chunked"
         assert "content-length" not in seen.headers
 

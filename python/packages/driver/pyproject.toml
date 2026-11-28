@@ -5,10 +5,12 @@ description = "Python HTTP client for ArcadeDB, generated from ArcadeDB's OpenAP
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
-requires-python = ">=3.10"
+# 3.11 because httpx2 requires it. Python 3.10 reached end of life in October 2026.
+requires-python = ">=3.11"
 keywords = ["arcadedb", "database", "graph-database", "multi-model", "http-client"]
 dependencies = [
-    "httpx>=0.27",
+    # The floor is the one openapi-python-client 0.30.0 declares for the code it generates.
+    "httpx2>=2.13.1",
     "attrs>=23.2",
     "typing-extensions>=4.10",
     "websockets>=14",

@@ -13,6 +13,7 @@ from http import HTTPStatus
 from typing import Any
 
 import httpx
+import httpx2
 import pytest
 import respx
 from arcadedb_driver import (
@@ -84,7 +85,7 @@ def test_from_response_reads_both_headers() -> None:
     response: Response[Any] = Response(
         status_code=HTTPStatus(409),
         content=b'{"error":"in flight"}',
-        headers=httpx.Headers({"retry-after": " 4 ", "x-arcadedb-commit-index": "17"}),
+        headers=httpx2.Headers({"retry-after": " 4 ", "x-arcadedb-commit-index": "17"}),
         parsed=None,
     )
     err = ArcadeDBError.from_response(response)

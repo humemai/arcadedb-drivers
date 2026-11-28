@@ -10,7 +10,7 @@ operation entirely, and exits 0.
 `_generated/api/batch/__init__.py` is an empty stub, and `POST /api/v1/batch/{database}` is one of
 the four entries `scripts/check_codegen_skips.py` pins in `EXPECTED_SKIPS`. `facade/timeseries.py`'s
 hand-written `write` is the closer relative: both issue a raw request through the generated
-`Client`'s own pooled `httpx.Client`/`httpx.AsyncClient`, so auth headers, timeout and connection
+`Client`'s own pooled `httpx2.Client`/`httpx2.AsyncClient`, so auth headers, timeout and connection
 pooling still apply, and both return `dict[str, Any]` rather than a generated model, because there
 is no generated model to return here at all.
 

@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
 
-import httpx
+import httpx2
 
 from ..errors import ArcadeDBError
 
@@ -162,7 +162,7 @@ def running_payload(command: str, wait: timedelta | None = None) -> dict[str, An
     return payload
 
 
-def running_result(raw: httpx.Response) -> Any:
+def running_result(raw: httpx2.Response) -> Any:
     """Raises `ArcadeDBError` unless the server answered 2xx; otherwise returns the body's
     `result`. A 2xx body with no `result` raises `ValueError`, rather than reading as an empty
     answer."""

@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-import httpx
+import httpx2
 
 from .._generated.models.api_token_list import ApiTokenList
 from .._generated.models.api_token_list_result_item import ApiTokenListResultItem
@@ -133,7 +133,7 @@ def login_result(data: LoginResponse | ErrorResponse | None) -> LoginResult:
     return LoginResult(token=data.token, user=data.user)
 
 
-def login_as_response(raw: httpx.Response) -> LoginResult:
+def login_as_response(raw: httpx2.Response) -> LoginResult:
     """Raises `ArcadeDBError` unless the server answered 2xx; otherwise parses the body with the
     generated `LoginResponse`."""
     if not 200 <= raw.status_code < 300:

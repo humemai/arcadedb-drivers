@@ -1,7 +1,7 @@
 """An optional `http.client` transport for the synchronous client's JSON calls (issue #187).
 
 `ArcadeDBServer(transport="http.client")` sends `query`, `command` and the transaction calls
-(`begin`, `commit`, `rollback`) over persistent `http.client` connections instead of httpx. A call
+(`begin`, `commit`, `rollback`) over persistent `http.client` connections instead of httpx2. A call
 that goes through httpx, over this transport or not, is the same request and gets the same answer:
 what the transport hands back is parsed by the code the httpx path uses (`fast_envelope_from_bytes`,
 then the generated `_build_response`, `unwrap` and `to_envelope`), so a non-2xx status, an `explain`
@@ -22,16 +22,16 @@ The module is deliberately small and has no state beyond the connections:
   `close()` closes the idle ones and every connection still in use when it comes back.
 - Errors. An exception from the socket layer becomes the httpx exception httpx itself raises for the
   same failure (`ConnectError`, `ConnectTimeout`, `ReadTimeout`, `WriteTimeout`,
-  `RemoteProtocolError`, ...), so `except httpx.HTTPError` keeps working whichever transport is
+  `RemoteProtocolError`, ...), so `except httpx2.HTTPError` keeps working whichever transport is
   chosen. A connection that failed or timed out is closed, never reused: a late answer on it would
   be read as the answer to the next call.
 - Timeouts. `http.client` has one timeout per socket, where httpx has four phases. The connect
-  timeout applies to the TCP (and TLS) connect, and the read timeout of an `httpx.Timeout` to every
+  timeout applies to the TCP (and TLS) connect, and the read timeout of an `httpx2.Timeout` to every
   later send and receive; the write and pool timeouts are not separate settings here. A per-call
-  timeout (`float`, `httpx.Timeout` or `None`) replaces the client's for that call.
+  timeout (`float`, `httpx2.Timeout` or `None`) replaces the client's for that call.
 - Not carried over: proxies (`HTTP_PROXY` and friends, which httpx reads from the environment),
   redirects (never followed, as with the httpx client the facade builds), HTTP/2 and httpx's
-  `event_hooks`. Calls that need them stay on httpx.
+  `event_hooks`. Calls that need them stay on httpx2.
 - `Accept-Encoding: gzip, deflate` is sent, as httpx sends it, and a gzip or deflate body is decoded.
 """
 
@@ -45,7 +45,7 @@ from collections.abc import Mapping
 from typing import Any, Literal
 from urllib.parse import quote, urlsplit
 
-import httpx
+import httpx2
 
 from ..facade.data import request_headers
 from .timeout import USE_CLIENT_DEFAULT, CallTimeout, UseClientDefault
@@ -81,9 +81,9 @@ def encode_json(body: Any) -> bytes:
     return _encode(body).encode("utf-8")
 
 
-def _split_timeout(timeout: float | httpx.Timeout | None) -> tuple[float | None, float | None]:
+def _split_timeout(timeout: float | httpx2.Timeout | None) -> tuple[float | None, float | None]:
     """`(connect, io)` socket timeouts for an httpx-style timeout; see the module docstring."""
-    if isinstance(timeout, httpx.Timeout):
+    if isinstance(timeout, httpx2.Timeout):
         return timeout.connect, timeout.read
     return timeout, timeout
 
@@ -108,7 +108,7 @@ def _decode(content: bytes, encoding: str) -> bytes:
                 except zlib.error:
                     content = zlib.decompress(content, -zlib.MAX_WBITS)
     except zlib.error as exc:
-        raise httpx.DecodingError(f"could not decode the {encoding!r} response body: {exc}") from exc
+        raise httpx2.DecodingError(f"could not decode the {encoding!r} response body: {exc}") from exc
     return content
 
 
@@ -122,15 +122,15 @@ class TransportResponse:
         self.content = content
         self.message = message
 
-    def as_httpx(self) -> httpx.Response:
-        """The same answer as an `httpx.Response`, for the generated parsers and `ArcadeDBError`.
+    def as_httpx(self) -> httpx2.Response:
+        """The same answer as an `httpx2.Response`, for the generated parsers and `ArcadeDBError`.
 
         Only the paths that are not the common one (an error, `explain`, a 204 with a header to read)
         call this; a plain row result never builds one. `Content-Encoding` is left out because the
         body is already decoded.
         """
         headers = [(name, value) for name, value in self.message.items() if name.lower() != "content-encoding"]
-        return httpx.Response(self.status, headers=headers, content=self.content)
+        return httpx2.Response(self.status, headers=headers, content=self.content)
 
 
 class _Slot:
@@ -217,7 +217,7 @@ class HttpClientTransport:
         *,
         base_url: str,
         headers: Mapping[str, str],
-        timeout: httpx.Timeout | None = None,
+        timeout: httpx2.Timeout | None = None,
         verify_ssl: bool = True,
     ) -> None:
         parts = urlsplit(base_url)
@@ -230,7 +230,7 @@ class HttpClientTransport:
         self._port = parts.port
         #: The path of `base_url` without a trailing slash, put before every request path as httpx does.
         self.prefix = parts.path.rstrip("/")
-        self._context = httpx.create_ssl_context(verify=verify_ssl) if self._https else None
+        self._context = httpx2.create_ssl_context(verify=verify_ssl) if self._https else None
         self._connect_timeout, self._io_timeout = _split_timeout(timeout)
         self._headers = _merge_headers(_BASE_HEADERS, headers)
         # `deque.append` and `deque.pop` are atomic, so taking and returning a connection needs no lock.
@@ -320,7 +320,7 @@ class HttpClientTransport:
             try:
                 content = response.read()
             except TimeoutError as exc:
-                raise httpx.ReadTimeout(str(exc) or "timed out") from exc
+                raise httpx2.ReadTimeout(str(exc) or "timed out") from exc
             encoding = response.msg.get("Content-Encoding")
             if encoding:
                 content = _decode(content, encoding)
@@ -367,9 +367,9 @@ class HttpClientTransport:
             try:
                 conn.connect()
             except TimeoutError as exc:
-                raise httpx.ConnectTimeout(str(exc) or "timed out") from exc
+                raise httpx2.ConnectTimeout(str(exc) or "timed out") from exc
             except OSError as exc:
-                raise httpx.ConnectError(str(exc)) from exc
+                raise httpx2.ConnectError(str(exc)) from exc
             slot.io_timeout = _NOT_SET
         if slot.io_timeout != io_timeout:
             sock = conn.sock
@@ -381,29 +381,29 @@ class HttpClientTransport:
         except _STALE:
             raise
         except TimeoutError as exc:
-            raise httpx.WriteTimeout(str(exc) or "timed out") from exc
+            raise httpx2.WriteTimeout(str(exc) or "timed out") from exc
         except OSError as exc:
-            raise httpx.WriteError(str(exc)) from exc
+            raise httpx2.WriteError(str(exc)) from exc
         try:
             return conn.getresponse()
         except _STALE:
             raise
         except TimeoutError as exc:
-            raise httpx.ReadTimeout(str(exc) or "timed out") from exc
+            raise httpx2.ReadTimeout(str(exc) or "timed out") from exc
 
 
-def _as_httpx_error(exc: BaseException) -> httpx.HTTPError | None:
+def _as_httpx_error(exc: BaseException) -> httpx2.HTTPError | None:
     """The httpx exception for a socket-layer or protocol failure; `None` to let `exc` propagate as it is."""
-    if isinstance(exc, httpx.HTTPError):
+    if isinstance(exc, httpx2.HTTPError):
         return None
     if isinstance(exc, http.client.RemoteDisconnected):
-        return httpx.RemoteProtocolError("Server disconnected without sending a response.")
+        return httpx2.RemoteProtocolError("Server disconnected without sending a response.")
     if isinstance(exc, http.client.HTTPException):
-        return httpx.RemoteProtocolError(str(exc) or type(exc).__name__)
+        return httpx2.RemoteProtocolError(str(exc) or type(exc).__name__)
     if isinstance(exc, BrokenPipeError):
-        return httpx.WriteError(str(exc))
+        return httpx2.WriteError(str(exc))
     if isinstance(exc, TimeoutError):
-        return httpx.ReadTimeout(str(exc) or "timed out")
+        return httpx2.ReadTimeout(str(exc) or "timed out")
     if isinstance(exc, OSError):
-        return httpx.ReadError(str(exc))
+        return httpx2.ReadError(str(exc))
     return None
