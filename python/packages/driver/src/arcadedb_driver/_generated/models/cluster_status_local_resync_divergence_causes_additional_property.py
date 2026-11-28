@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ClusterStatusLocalResyncDivergenceCausesAdditionalProperty(str, Enum):
+class ClusterStatusLocalResyncDivergenceCausesAdditionalProperty(StrEnum):
     APPLY_ERROR = "APPLY_ERROR"
     EMPTY_DICTIONARY = "EMPTY_DICTIONARY"
     LOCAL_RECOVERY_INCOMPLETE = "LOCAL_RECOVERY_INCOMPLETE"

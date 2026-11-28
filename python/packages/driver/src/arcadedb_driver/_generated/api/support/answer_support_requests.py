@@ -2,7 +2,7 @@ from http import HTTPStatus
 from typing import Any
 from urllib.parse import quote
 
-import httpx
+import httpx2
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
@@ -38,7 +38,7 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx2.Response
 ) -> AnswerSupportRequestsResponse201 | ErrorResponse | None:
     if response.status_code == 201:
         response_201 = AnswerSupportRequestsResponse201.from_dict(response.json())
@@ -102,7 +102,7 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx2.Response
 ) -> Response[AnswerSupportRequestsResponse201 | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -119,11 +119,11 @@ def sync_detailed(
     body: SupportAnswersRequest,
     x_request_id: str | Unset = UNSET,
 ) -> Response[AnswerSupportRequestsResponse201 | ErrorResponse]:
-    r"""Answer several support requests at once
+    """Answer several support requests at once
 
-     As answering one, for \"Run all\": the portal writes ONE comment. Restricted to the root user.
-    Errors carry a code in 'error' (invalid_key, client_mismatch, scope_denied, support_not_active,
-    not_found, too_large, rate_limited, bad_request, portal_unreachable, portal_error, not_registered,
+     As answering one, for "Run all": the portal writes ONE comment. Restricted to the root user. Errors
+    carry a code in 'error' (invalid_key, client_mismatch, scope_denied, support_not_active, not_found,
+    too_large, rate_limited, bad_request, portal_unreachable, portal_error, not_registered,
     preview_not_found, bundle_too_large, preview_busy, support_stopped) and a clear message in
     'message'.
 
@@ -134,7 +134,7 @@ def sync_detailed(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         Response[AnswerSupportRequestsResponse201 | ErrorResponse]
@@ -160,11 +160,11 @@ def sync(
     body: SupportAnswersRequest,
     x_request_id: str | Unset = UNSET,
 ) -> AnswerSupportRequestsResponse201 | ErrorResponse | None:
-    r"""Answer several support requests at once
+    """Answer several support requests at once
 
-     As answering one, for \"Run all\": the portal writes ONE comment. Restricted to the root user.
-    Errors carry a code in 'error' (invalid_key, client_mismatch, scope_denied, support_not_active,
-    not_found, too_large, rate_limited, bad_request, portal_unreachable, portal_error, not_registered,
+     As answering one, for "Run all": the portal writes ONE comment. Restricted to the root user. Errors
+    carry a code in 'error' (invalid_key, client_mismatch, scope_denied, support_not_active, not_found,
+    too_large, rate_limited, bad_request, portal_unreachable, portal_error, not_registered,
     preview_not_found, bundle_too_large, preview_busy, support_stopped) and a clear message in
     'message'.
 
@@ -175,7 +175,7 @@ def sync(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         AnswerSupportRequestsResponse201 | ErrorResponse
@@ -196,11 +196,11 @@ async def asyncio_detailed(
     body: SupportAnswersRequest,
     x_request_id: str | Unset = UNSET,
 ) -> Response[AnswerSupportRequestsResponse201 | ErrorResponse]:
-    r"""Answer several support requests at once
+    """Answer several support requests at once
 
-     As answering one, for \"Run all\": the portal writes ONE comment. Restricted to the root user.
-    Errors carry a code in 'error' (invalid_key, client_mismatch, scope_denied, support_not_active,
-    not_found, too_large, rate_limited, bad_request, portal_unreachable, portal_error, not_registered,
+     As answering one, for "Run all": the portal writes ONE comment. Restricted to the root user. Errors
+    carry a code in 'error' (invalid_key, client_mismatch, scope_denied, support_not_active, not_found,
+    too_large, rate_limited, bad_request, portal_unreachable, portal_error, not_registered,
     preview_not_found, bundle_too_large, preview_busy, support_stopped) and a clear message in
     'message'.
 
@@ -211,7 +211,7 @@ async def asyncio_detailed(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         Response[AnswerSupportRequestsResponse201 | ErrorResponse]
@@ -235,11 +235,11 @@ async def asyncio(
     body: SupportAnswersRequest,
     x_request_id: str | Unset = UNSET,
 ) -> AnswerSupportRequestsResponse201 | ErrorResponse | None:
-    r"""Answer several support requests at once
+    """Answer several support requests at once
 
-     As answering one, for \"Run all\": the portal writes ONE comment. Restricted to the root user.
-    Errors carry a code in 'error' (invalid_key, client_mismatch, scope_denied, support_not_active,
-    not_found, too_large, rate_limited, bad_request, portal_unreachable, portal_error, not_registered,
+     As answering one, for "Run all": the portal writes ONE comment. Restricted to the root user. Errors
+    carry a code in 'error' (invalid_key, client_mismatch, scope_denied, support_not_active, not_found,
+    too_large, rate_limited, bad_request, portal_unreachable, portal_error, not_registered,
     preview_not_found, bundle_too_large, preview_busy, support_stopped) and a clear message in
     'message'.
 
@@ -250,7 +250,7 @@ async def asyncio(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         AnswerSupportRequestsResponse201 | ErrorResponse

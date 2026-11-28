@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class GrafanaQueryRequestTargetsItemAggregationRequestsItemType(str, Enum):
+class GrafanaQueryRequestTargetsItemAggregationRequestsItemType(StrEnum):
     AVG = "AVG"
     COUNT = "COUNT"
     MAX = "MAX"

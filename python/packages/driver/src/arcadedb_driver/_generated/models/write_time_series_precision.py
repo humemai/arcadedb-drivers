@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class WriteTimeSeriesPrecision(str, Enum):
+class WriteTimeSeriesPrecision(StrEnum):
     MS = "ms"
     NS = "ns"
     S = "s"

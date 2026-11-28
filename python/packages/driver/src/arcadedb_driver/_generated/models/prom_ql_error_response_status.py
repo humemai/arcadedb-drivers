@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class PromQLErrorResponseStatus(str, Enum):
+class PromQLErrorResponseStatus(StrEnum):
     ERROR = "error"
 
     def __str__(self) -> str:

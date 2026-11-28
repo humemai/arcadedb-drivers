@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ExecuteCommandAccept(str, Enum):
+class ExecuteCommandAccept(StrEnum):
     APPLICATIONJSON = "application/json"
     APPLICATIONX_NDJSON = "application/x-ndjson"
 

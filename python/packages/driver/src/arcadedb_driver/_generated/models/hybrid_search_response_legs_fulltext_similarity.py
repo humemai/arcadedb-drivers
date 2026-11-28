@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class HybridSearchResponseLegsFulltextSimilarity(str, Enum):
+class HybridSearchResponseLegsFulltextSimilarity(StrEnum):
     BM25 = "BM25"
     CLASSIC = "CLASSIC"
 

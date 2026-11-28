@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class BatchEdgeLineType(str, Enum):
+class BatchEdgeLineType(StrEnum):
     E = "e"
     EDGE = "edge"
 

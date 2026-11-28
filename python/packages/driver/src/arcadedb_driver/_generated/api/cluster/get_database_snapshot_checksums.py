@@ -2,7 +2,7 @@ from http import HTTPStatus
 from typing import Any
 from urllib.parse import quote
 
-import httpx
+import httpx2
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
@@ -26,7 +26,7 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx2.Response
 ) -> ErrorResponse | GetDatabaseSnapshotChecksumsResponse200 | None:
     if response.status_code == 200:
         response_200 = GetDatabaseSnapshotChecksumsResponse200.from_dict(response.json())
@@ -70,7 +70,7 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx2.Response
 ) -> Response[ErrorResponse | GetDatabaseSnapshotChecksumsResponse200]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -85,12 +85,12 @@ def sync_detailed(
     *,
     client: AuthenticatedClient,
 ) -> Response[ErrorResponse | GetDatabaseSnapshotChecksumsResponse200]:
-    r"""Read the checksums of a snapshot's files
+    """Read the checksums of a snapshot's files
 
      Returns the per-file checksums of the database as a snapshot download would produce it, read through
     the same point-in-time window. Only the root user may read them.
 
-    This is an operator diagnostic: it answers \"do these two nodes hold the same bytes?\" without
+    This is an operator diagnostic: it answers "do these two nodes hold the same bytes?" without
     transferring a database. Resync itself does not consult it - a follower that falls behind the
     compacted Raft log always downloads the full snapshot ZIP - because a whole-file comparison is the
     wrong granularity for an ArcadeDB database, which is usually dominated by one bucket file that any
@@ -105,7 +105,7 @@ def sync_detailed(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         Response[ErrorResponse | GetDatabaseSnapshotChecksumsResponse200]
@@ -127,12 +127,12 @@ def sync(
     *,
     client: AuthenticatedClient,
 ) -> ErrorResponse | GetDatabaseSnapshotChecksumsResponse200 | None:
-    r"""Read the checksums of a snapshot's files
+    """Read the checksums of a snapshot's files
 
      Returns the per-file checksums of the database as a snapshot download would produce it, read through
     the same point-in-time window. Only the root user may read them.
 
-    This is an operator diagnostic: it answers \"do these two nodes hold the same bytes?\" without
+    This is an operator diagnostic: it answers "do these two nodes hold the same bytes?" without
     transferring a database. Resync itself does not consult it - a follower that falls behind the
     compacted Raft log always downloads the full snapshot ZIP - because a whole-file comparison is the
     wrong granularity for an ArcadeDB database, which is usually dominated by one bucket file that any
@@ -147,7 +147,7 @@ def sync(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         ErrorResponse | GetDatabaseSnapshotChecksumsResponse200
@@ -164,12 +164,12 @@ async def asyncio_detailed(
     *,
     client: AuthenticatedClient,
 ) -> Response[ErrorResponse | GetDatabaseSnapshotChecksumsResponse200]:
-    r"""Read the checksums of a snapshot's files
+    """Read the checksums of a snapshot's files
 
      Returns the per-file checksums of the database as a snapshot download would produce it, read through
     the same point-in-time window. Only the root user may read them.
 
-    This is an operator diagnostic: it answers \"do these two nodes hold the same bytes?\" without
+    This is an operator diagnostic: it answers "do these two nodes hold the same bytes?" without
     transferring a database. Resync itself does not consult it - a follower that falls behind the
     compacted Raft log always downloads the full snapshot ZIP - because a whole-file comparison is the
     wrong granularity for an ArcadeDB database, which is usually dominated by one bucket file that any
@@ -184,7 +184,7 @@ async def asyncio_detailed(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         Response[ErrorResponse | GetDatabaseSnapshotChecksumsResponse200]
@@ -204,12 +204,12 @@ async def asyncio(
     *,
     client: AuthenticatedClient,
 ) -> ErrorResponse | GetDatabaseSnapshotChecksumsResponse200 | None:
-    r"""Read the checksums of a snapshot's files
+    """Read the checksums of a snapshot's files
 
      Returns the per-file checksums of the database as a snapshot download would produce it, read through
     the same point-in-time window. Only the root user may read them.
 
-    This is an operator diagnostic: it answers \"do these two nodes hold the same bytes?\" without
+    This is an operator diagnostic: it answers "do these two nodes hold the same bytes?" without
     transferring a database. Resync itself does not consult it - a follower that falls behind the
     compacted Raft log always downloads the full snapshot ZIP - because a whole-file comparison is the
     wrong granularity for an ArcadeDB database, which is usually dominated by one bucket file that any
@@ -224,7 +224,7 @@ async def asyncio(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         ErrorResponse | GetDatabaseSnapshotChecksumsResponse200

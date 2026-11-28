@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class AiChatStreamEventType(str, Enum):
+class AiChatStreamEventType(StrEnum):
     DELTA = "delta"
     DONE = "done"
     ERROR = "error"

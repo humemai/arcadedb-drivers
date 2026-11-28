@@ -2,7 +2,7 @@ from http import HTTPStatus
 from typing import Any
 from urllib.parse import quote
 
-import httpx
+import httpx2
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
@@ -46,7 +46,7 @@ def _get_kwargs(
 
 
 def _parse_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx2.Response
 ) -> ErrorResponse | QueryResponse | None:
     if response.status_code == 200:
         response_200 = QueryResponse.from_dict(response.json())
@@ -90,7 +90,7 @@ def _parse_response(
 
 
 def _build_response(
-    *, client: AuthenticatedClient | Client, response: httpx.Response
+    *, client: AuthenticatedClient | Client, response: httpx2.Response
 ) -> Response[ErrorResponse | QueryResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
@@ -110,7 +110,7 @@ def sync_detailed(
     x_arcade_db_query_tag: str | Unset = UNSET,
     accept: ExecuteQueryGetAccept | Unset = UNSET,
 ) -> Response[ErrorResponse | QueryResponse]:
-    r"""Execute query via GET
+    """Execute query via GET
 
      Executes a query using GET method with parameters in URL. When 'Accept' requests the ndjson
     encoding, only a statement provably read-only may stream: one that writes - INSERT, UPDATE, DELETE,
@@ -119,12 +119,12 @@ def sync_detailed(
     a statement that fails half-way through. Request the buffered 'application/json' encoding for it
     instead.
 
-    EXPLAIN is refused on the stream for a different reason and with its own 400 (\"EXPLAIN produces a
-    plan, not a row stream\"): it is read-only and passes the gate above, but its answer is a plan
-    rather than rows, and a stream of rows plus a stats trailer has nowhere to carry one. Request it
-    buffered, where the plan arrives in the 'explain' and 'explainPlan' properties of the envelope and
-    'result' is empty. All three operations answer EXPLAIN this way; until issue #7575 the GET operation
-    reached neither rule and answered the plan as a result row instead.
+    EXPLAIN is refused on the stream for a different reason and with its own 400 ("EXPLAIN produces a
+    plan, not a row stream"): it is read-only and passes the gate above, but its answer is a plan rather
+    than rows, and a stream of rows plus a stats trailer has nowhere to carry one. Request it buffered,
+    where the plan arrives in the 'explain' and 'explainPlan' properties of the envelope and 'result' is
+    empty. All three operations answer EXPLAIN this way; until issue #7575 the GET operation reached
+    neither rule and answered the plan as a result row instead.
 
     Args:
         database (str):
@@ -136,7 +136,7 @@ def sync_detailed(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         Response[ErrorResponse | QueryResponse]
@@ -168,7 +168,7 @@ def sync(
     x_arcade_db_query_tag: str | Unset = UNSET,
     accept: ExecuteQueryGetAccept | Unset = UNSET,
 ) -> ErrorResponse | QueryResponse | None:
-    r"""Execute query via GET
+    """Execute query via GET
 
      Executes a query using GET method with parameters in URL. When 'Accept' requests the ndjson
     encoding, only a statement provably read-only may stream: one that writes - INSERT, UPDATE, DELETE,
@@ -177,12 +177,12 @@ def sync(
     a statement that fails half-way through. Request the buffered 'application/json' encoding for it
     instead.
 
-    EXPLAIN is refused on the stream for a different reason and with its own 400 (\"EXPLAIN produces a
-    plan, not a row stream\"): it is read-only and passes the gate above, but its answer is a plan
-    rather than rows, and a stream of rows plus a stats trailer has nowhere to carry one. Request it
-    buffered, where the plan arrives in the 'explain' and 'explainPlan' properties of the envelope and
-    'result' is empty. All three operations answer EXPLAIN this way; until issue #7575 the GET operation
-    reached neither rule and answered the plan as a result row instead.
+    EXPLAIN is refused on the stream for a different reason and with its own 400 ("EXPLAIN produces a
+    plan, not a row stream"): it is read-only and passes the gate above, but its answer is a plan rather
+    than rows, and a stream of rows plus a stats trailer has nowhere to carry one. Request it buffered,
+    where the plan arrives in the 'explain' and 'explainPlan' properties of the envelope and 'result' is
+    empty. All three operations answer EXPLAIN this way; until issue #7575 the GET operation reached
+    neither rule and answered the plan as a result row instead.
 
     Args:
         database (str):
@@ -194,7 +194,7 @@ def sync(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         ErrorResponse | QueryResponse
@@ -221,7 +221,7 @@ async def asyncio_detailed(
     x_arcade_db_query_tag: str | Unset = UNSET,
     accept: ExecuteQueryGetAccept | Unset = UNSET,
 ) -> Response[ErrorResponse | QueryResponse]:
-    r"""Execute query via GET
+    """Execute query via GET
 
      Executes a query using GET method with parameters in URL. When 'Accept' requests the ndjson
     encoding, only a statement provably read-only may stream: one that writes - INSERT, UPDATE, DELETE,
@@ -230,12 +230,12 @@ async def asyncio_detailed(
     a statement that fails half-way through. Request the buffered 'application/json' encoding for it
     instead.
 
-    EXPLAIN is refused on the stream for a different reason and with its own 400 (\"EXPLAIN produces a
-    plan, not a row stream\"): it is read-only and passes the gate above, but its answer is a plan
-    rather than rows, and a stream of rows plus a stats trailer has nowhere to carry one. Request it
-    buffered, where the plan arrives in the 'explain' and 'explainPlan' properties of the envelope and
-    'result' is empty. All three operations answer EXPLAIN this way; until issue #7575 the GET operation
-    reached neither rule and answered the plan as a result row instead.
+    EXPLAIN is refused on the stream for a different reason and with its own 400 ("EXPLAIN produces a
+    plan, not a row stream"): it is read-only and passes the gate above, but its answer is a plan rather
+    than rows, and a stream of rows plus a stats trailer has nowhere to carry one. Request it buffered,
+    where the plan arrives in the 'explain' and 'explainPlan' properties of the envelope and 'result' is
+    empty. All three operations answer EXPLAIN this way; until issue #7575 the GET operation reached
+    neither rule and answered the plan as a result row instead.
 
     Args:
         database (str):
@@ -247,7 +247,7 @@ async def asyncio_detailed(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         Response[ErrorResponse | QueryResponse]
@@ -277,7 +277,7 @@ async def asyncio(
     x_arcade_db_query_tag: str | Unset = UNSET,
     accept: ExecuteQueryGetAccept | Unset = UNSET,
 ) -> ErrorResponse | QueryResponse | None:
-    r"""Execute query via GET
+    """Execute query via GET
 
      Executes a query using GET method with parameters in URL. When 'Accept' requests the ndjson
     encoding, only a statement provably read-only may stream: one that writes - INSERT, UPDATE, DELETE,
@@ -286,12 +286,12 @@ async def asyncio(
     a statement that fails half-way through. Request the buffered 'application/json' encoding for it
     instead.
 
-    EXPLAIN is refused on the stream for a different reason and with its own 400 (\"EXPLAIN produces a
-    plan, not a row stream\"): it is read-only and passes the gate above, but its answer is a plan
-    rather than rows, and a stream of rows plus a stats trailer has nowhere to carry one. Request it
-    buffered, where the plan arrives in the 'explain' and 'explainPlan' properties of the envelope and
-    'result' is empty. All three operations answer EXPLAIN this way; until issue #7575 the GET operation
-    reached neither rule and answered the plan as a result row instead.
+    EXPLAIN is refused on the stream for a different reason and with its own 400 ("EXPLAIN produces a
+    plan, not a row stream"): it is read-only and passes the gate above, but its answer is a plan rather
+    than rows, and a stream of rows plus a stats trailer has nowhere to carry one. Request it buffered,
+    where the plan arrives in the 'explain' and 'explainPlan' properties of the envelope and 'result' is
+    empty. All three operations answer EXPLAIN this way; until issue #7575 the GET operation reached
+    neither rule and answered the plan as a result row instead.
 
     Args:
         database (str):
@@ -303,7 +303,7 @@ async def asyncio(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         ErrorResponse | QueryResponse

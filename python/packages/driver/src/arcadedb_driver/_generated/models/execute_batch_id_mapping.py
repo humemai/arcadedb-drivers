@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ExecuteBatchIdMapping(str, Enum):
+class ExecuteBatchIdMapping(StrEnum):
     AUTO = "auto"
     FALSE = "false"
     TRUE = "true"

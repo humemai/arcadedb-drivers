@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class BatchVertexLineType(str, Enum):
+class BatchVertexLineType(StrEnum):
     V = "v"
     VERTEX = "vertex"
 

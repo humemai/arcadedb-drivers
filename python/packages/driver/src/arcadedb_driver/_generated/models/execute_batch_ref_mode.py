@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ExecuteBatchRefMode(str, Enum):
+class ExecuteBatchRefMode(StrEnum):
     ID = "id"
     ORDINAL = "ordinal"
 

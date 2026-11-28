@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ClusterStatusPeersItemCapabilitiesUnknownKind(str, Enum):
+class ClusterStatusPeersItemCapabilitiesUnknownKind(StrEnum):
     ADDRESS_REFUSED = "ADDRESS_REFUSED"
     ROUTE_MISSING = "ROUTE_MISSING"
     STALE = "STALE"

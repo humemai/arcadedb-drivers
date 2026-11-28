@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class HybridSearchRequestFusionStrategy(str, Enum):
+class HybridSearchRequestFusionStrategy(StrEnum):
     DBSF = "DBSF"
     LINEAR = "LINEAR"
     RRF = "RRF"

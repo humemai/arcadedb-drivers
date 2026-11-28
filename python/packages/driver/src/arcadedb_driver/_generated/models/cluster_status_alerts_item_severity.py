@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ClusterStatusAlertsItemSeverity(str, Enum):
+class ClusterStatusAlertsItemSeverity(StrEnum):
     CRITICAL = "critical"
     INFO = "info"
     WARNING = "warning"

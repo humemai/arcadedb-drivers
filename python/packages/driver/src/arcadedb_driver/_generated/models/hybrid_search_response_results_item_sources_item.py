@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class HybridSearchResponseResultsItemSourcesItem(str, Enum):
+class HybridSearchResponseResultsItemSourcesItem(StrEnum):
     EXPAND = "expand"
     FULLTEXT = "fulltext"
     VECTOR = "vector"

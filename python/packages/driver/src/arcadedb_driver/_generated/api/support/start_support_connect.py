@@ -1,7 +1,7 @@
 from http import HTTPStatus
 from typing import Any, cast
 
-import httpx
+import httpx2
 
 from ... import errors
 from ...client import AuthenticatedClient, Client
@@ -26,7 +26,7 @@ def _get_kwargs(
     return _kwargs
 
 
-def _parse_response(*, client: AuthenticatedClient | Client, response: httpx.Response) -> Any | ErrorResponse | None:
+def _parse_response(*, client: AuthenticatedClient | Client, response: httpx2.Response) -> Any | ErrorResponse | None:
     if response.status_code == 200:
         response_200 = cast(Any, None)
         return response_200
@@ -67,7 +67,9 @@ def _parse_response(*, client: AuthenticatedClient | Client, response: httpx.Res
         return None
 
 
-def _build_response(*, client: AuthenticatedClient | Client, response: httpx.Response) -> Response[Any | ErrorResponse]:
+def _build_response(
+    *, client: AuthenticatedClient | Client, response: httpx2.Response
+) -> Response[Any | ErrorResponse]:
     return Response(
         status_code=HTTPStatus(response.status_code),
         content=response.content,
@@ -81,19 +83,19 @@ def sync_detailed(
     client: AuthenticatedClient | Client,
     x_request_id: str | Unset = UNSET,
 ) -> Response[Any | ErrorResponse]:
-    r"""Start connecting this server to the portal
+    """Start connecting this server to the portal
 
      Asks the portal for a code ('device authorization'): answers {userCode, verifyUrl, expiresIn}.
     Studio shows the code and opens verifyUrl in a new tab; once a workspace owner or admin approves it
     there, the server receives the workspace key (never shown to the browser), stores it as a
     registration and registers itself as an installation. One connection waits at a time. Restricted to
     the root user (HTTP Basic). Without Studio, from a shell or the console ('connect portal'): `curl -s
-    -u root:PASSWORD -X POST -H 'Content-Type: application/json' -d '{\"label\":\"prod-1\"}'
-    http://localhost:2480/api/v1/server/support/connect` answers {\"userCode\":\"WDJB-
-    MJHT\",\"verifyUrl\":\"https://portal.arcadedb.com/#/connect?code=WDJB-MJHT\",\"expiresIn\":600};
-    open verifyUrl in any browser, check that the code matches and approve; then `curl -s -u
-    root:PASSWORD http://localhost:2480/api/v1/server/support/connect` until status is no longer
-    'pending' (every 2 seconds is plenty); `curl -s -u root:PASSWORD -X DELETE
+    -u root:PASSWORD -X POST -H 'Content-Type: application/json' -d '{"label":"prod-1"}'
+    http://localhost:2480/api/v1/server/support/connect` answers {"userCode":"WDJB-
+    MJHT","verifyUrl":"https://portal.arcadedb.com/#/connect?code=WDJB-MJHT","expiresIn":600}; open
+    verifyUrl in any browser, check that the code matches and approve; then `curl -s -u root:PASSWORD
+    http://localhost:2480/api/v1/server/support/connect` until status is no longer 'pending' (every 2
+    seconds is plenty); `curl -s -u root:PASSWORD -X DELETE
     http://localhost:2480/api/v1/server/support/connect` stops waiting (204). The optional body field
     'label' (up to 60 characters) names the key in the portal. Errors carry a code in 'error'
     (invalid_key, client_mismatch, scope_denied, support_not_active, not_found, too_large, rate_limited,
@@ -105,7 +107,7 @@ def sync_detailed(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         Response[Any | ErrorResponse]
@@ -127,19 +129,19 @@ def sync(
     client: AuthenticatedClient | Client,
     x_request_id: str | Unset = UNSET,
 ) -> Any | ErrorResponse | None:
-    r"""Start connecting this server to the portal
+    """Start connecting this server to the portal
 
      Asks the portal for a code ('device authorization'): answers {userCode, verifyUrl, expiresIn}.
     Studio shows the code and opens verifyUrl in a new tab; once a workspace owner or admin approves it
     there, the server receives the workspace key (never shown to the browser), stores it as a
     registration and registers itself as an installation. One connection waits at a time. Restricted to
     the root user (HTTP Basic). Without Studio, from a shell or the console ('connect portal'): `curl -s
-    -u root:PASSWORD -X POST -H 'Content-Type: application/json' -d '{\"label\":\"prod-1\"}'
-    http://localhost:2480/api/v1/server/support/connect` answers {\"userCode\":\"WDJB-
-    MJHT\",\"verifyUrl\":\"https://portal.arcadedb.com/#/connect?code=WDJB-MJHT\",\"expiresIn\":600};
-    open verifyUrl in any browser, check that the code matches and approve; then `curl -s -u
-    root:PASSWORD http://localhost:2480/api/v1/server/support/connect` until status is no longer
-    'pending' (every 2 seconds is plenty); `curl -s -u root:PASSWORD -X DELETE
+    -u root:PASSWORD -X POST -H 'Content-Type: application/json' -d '{"label":"prod-1"}'
+    http://localhost:2480/api/v1/server/support/connect` answers {"userCode":"WDJB-
+    MJHT","verifyUrl":"https://portal.arcadedb.com/#/connect?code=WDJB-MJHT","expiresIn":600}; open
+    verifyUrl in any browser, check that the code matches and approve; then `curl -s -u root:PASSWORD
+    http://localhost:2480/api/v1/server/support/connect` until status is no longer 'pending' (every 2
+    seconds is plenty); `curl -s -u root:PASSWORD -X DELETE
     http://localhost:2480/api/v1/server/support/connect` stops waiting (204). The optional body field
     'label' (up to 60 characters) names the key in the portal. Errors carry a code in 'error'
     (invalid_key, client_mismatch, scope_denied, support_not_active, not_found, too_large, rate_limited,
@@ -151,7 +153,7 @@ def sync(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         Any | ErrorResponse
@@ -168,19 +170,19 @@ async def asyncio_detailed(
     client: AuthenticatedClient | Client,
     x_request_id: str | Unset = UNSET,
 ) -> Response[Any | ErrorResponse]:
-    r"""Start connecting this server to the portal
+    """Start connecting this server to the portal
 
      Asks the portal for a code ('device authorization'): answers {userCode, verifyUrl, expiresIn}.
     Studio shows the code and opens verifyUrl in a new tab; once a workspace owner or admin approves it
     there, the server receives the workspace key (never shown to the browser), stores it as a
     registration and registers itself as an installation. One connection waits at a time. Restricted to
     the root user (HTTP Basic). Without Studio, from a shell or the console ('connect portal'): `curl -s
-    -u root:PASSWORD -X POST -H 'Content-Type: application/json' -d '{\"label\":\"prod-1\"}'
-    http://localhost:2480/api/v1/server/support/connect` answers {\"userCode\":\"WDJB-
-    MJHT\",\"verifyUrl\":\"https://portal.arcadedb.com/#/connect?code=WDJB-MJHT\",\"expiresIn\":600};
-    open verifyUrl in any browser, check that the code matches and approve; then `curl -s -u
-    root:PASSWORD http://localhost:2480/api/v1/server/support/connect` until status is no longer
-    'pending' (every 2 seconds is plenty); `curl -s -u root:PASSWORD -X DELETE
+    -u root:PASSWORD -X POST -H 'Content-Type: application/json' -d '{"label":"prod-1"}'
+    http://localhost:2480/api/v1/server/support/connect` answers {"userCode":"WDJB-
+    MJHT","verifyUrl":"https://portal.arcadedb.com/#/connect?code=WDJB-MJHT","expiresIn":600}; open
+    verifyUrl in any browser, check that the code matches and approve; then `curl -s -u root:PASSWORD
+    http://localhost:2480/api/v1/server/support/connect` until status is no longer 'pending' (every 2
+    seconds is plenty); `curl -s -u root:PASSWORD -X DELETE
     http://localhost:2480/api/v1/server/support/connect` stops waiting (204). The optional body field
     'label' (up to 60 characters) names the key in the portal. Errors carry a code in 'error'
     (invalid_key, client_mismatch, scope_denied, support_not_active, not_found, too_large, rate_limited,
@@ -192,7 +194,7 @@ async def asyncio_detailed(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         Response[Any | ErrorResponse]
@@ -212,19 +214,19 @@ async def asyncio(
     client: AuthenticatedClient | Client,
     x_request_id: str | Unset = UNSET,
 ) -> Any | ErrorResponse | None:
-    r"""Start connecting this server to the portal
+    """Start connecting this server to the portal
 
      Asks the portal for a code ('device authorization'): answers {userCode, verifyUrl, expiresIn}.
     Studio shows the code and opens verifyUrl in a new tab; once a workspace owner or admin approves it
     there, the server receives the workspace key (never shown to the browser), stores it as a
     registration and registers itself as an installation. One connection waits at a time. Restricted to
     the root user (HTTP Basic). Without Studio, from a shell or the console ('connect portal'): `curl -s
-    -u root:PASSWORD -X POST -H 'Content-Type: application/json' -d '{\"label\":\"prod-1\"}'
-    http://localhost:2480/api/v1/server/support/connect` answers {\"userCode\":\"WDJB-
-    MJHT\",\"verifyUrl\":\"https://portal.arcadedb.com/#/connect?code=WDJB-MJHT\",\"expiresIn\":600};
-    open verifyUrl in any browser, check that the code matches and approve; then `curl -s -u
-    root:PASSWORD http://localhost:2480/api/v1/server/support/connect` until status is no longer
-    'pending' (every 2 seconds is plenty); `curl -s -u root:PASSWORD -X DELETE
+    -u root:PASSWORD -X POST -H 'Content-Type: application/json' -d '{"label":"prod-1"}'
+    http://localhost:2480/api/v1/server/support/connect` answers {"userCode":"WDJB-
+    MJHT","verifyUrl":"https://portal.arcadedb.com/#/connect?code=WDJB-MJHT","expiresIn":600}; open
+    verifyUrl in any browser, check that the code matches and approve; then `curl -s -u root:PASSWORD
+    http://localhost:2480/api/v1/server/support/connect` until status is no longer 'pending' (every 2
+    seconds is plenty); `curl -s -u root:PASSWORD -X DELETE
     http://localhost:2480/api/v1/server/support/connect` stops waiting (204). The optional body field
     'label' (up to 60 characters) names the key in the portal. Errors carry a code in 'error'
     (invalid_key, client_mismatch, scope_denied, support_not_active, not_found, too_large, rate_limited,
@@ -236,7 +238,7 @@ async def asyncio(
 
     Raises:
         errors.UnexpectedStatus: If the server returns an undocumented status code and Client.raise_on_unexpected_status is True.
-        httpx.TimeoutException: If the request takes longer than Client.timeout.
+        httpx2.TimeoutException: If the request takes longer than Client.timeout.
 
     Returns:
         Any | ErrorResponse
