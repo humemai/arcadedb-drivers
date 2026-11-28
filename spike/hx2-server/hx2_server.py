@@ -19,6 +19,7 @@ driver), `http.client` (driver on main with `transport="http.client"`, which doe
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import random
@@ -27,8 +28,11 @@ import subprocess
 import sys
 import time
 from collections.abc import Callable
+from http.client import HTTPConnection
+from importlib import import_module
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 CELLS = ["query1", "txcommand", "read100", "read5000", "batch"]
 ARMS = ["httpx", "aa", "httpx2", "http.client"]
@@ -55,6 +59,10 @@ MAX_WIDTH = 1.10  # upper end of the interval divided by its lower end
 THROTTLE_SHARE = 0.01
 GATE_C, GATE_MAX_S = 70, 60
 READY_MAX_S = 180
+# Is httpx2 worth its breaking changes for a user of the driver? Read from the httpx2 / httpx intervals (`worth`).
+COMMON_CELLS = ["query1", "txcommand"]
+GAIN_WORTH = 0.90  # a common call with at least 10 percent less wall time, over the whole interval
+COST_LIMITS = {"wall_us": MARGIN[1], "rss_peak_kib": 1.10}  # a cost: the whole interval above this, in any cell
 
 DB, BATCH_DB = "hx2s", "hx2sbatch"
 ROWS = {"read100": ("Row100", 100), "read5000": ("Row5000", 5000)}
@@ -147,8 +155,7 @@ def written(cell: str, db: Any) -> int | None:
 
 def one(cell: str, arm: str, url: str, warm: int, timed: int, out: str) -> None:
     check(arm in ARMS_OF[cell], f"arm {arm} does not run cell {cell}")
-    import arcadedb_driver  # noqa: F401  (imported first, so that the memory after the import is read here)
-
+    import_module("arcadedb_driver")  # first, so that the memory after the import is read here
     rss_import = proc_status_kib("VmRSS")
     loaded = {name for name in ("httpx", "httpx2") if name in sys.modules}
     library = "httpx2" if arm == "httpx2" else "httpx"
@@ -252,6 +259,42 @@ def reset_batch(url: str) -> None:
         db.command(language="sql", command="CREATE EDGE TYPE BEdge")
 
 
+def cookie_record(url: str) -> str:
+    """Whether the server sends Set-Cookie on the calls the cells make, read with http.client, no library in between.
+
+    httpx2 2.10.0 and later skip the cookie extraction for a response without that header.
+    """
+    address = urlsplit(url)
+    credential = base64.b64encode(f"root:{os.environ['HX2_PASSWORD']}".encode()).decode("ascii")
+    connection = HTTPConnection(str(address.hostname), address.port, timeout=60)
+    seen: list[str] = []
+
+    def post(operation: str, database: str, body: str | None = None, session: str | None = None) -> Any:
+        kind = "application/x-ndjson" if operation == "batch" else "application/json"
+        headers = {"Authorization": f"Basic {credential}", "Content-Type": kind}
+        if session is not None:
+            headers["arcadedb-session-id"] = session
+        connection.request("POST", f"/api/v1/{operation}/{database}", body=body, headers=headers)
+        response = connection.getresponse()
+        response.read()
+        check(response.status < 300, f"{operation} answered {response.status}")
+        seen.append(f"{operation} {'yes' if response.getheader('Set-Cookie') is not None else 'no'}")
+        return response
+
+    statement = json.dumps({"language": "sql", "command": "SELECT FROM Person WHERE id = 1"})
+    try:
+        post("query", DB, statement)
+        post("command", DB, statement)
+        session = post("begin", DB).getheader("arcadedb-session-id")
+        check(session is not None, "begin returned no session id")
+        post("command", DB, statement, session)
+        post("commit", DB, session=session)
+        post("batch", BATCH_DB, json.dumps({"@type": "vertex", "@class": "BNode"}) + "\n")
+    finally:
+        connection.close()
+    return f"Set-Cookie in the server's response, by call: {', '.join(seen)}"
+
+
 def package_temp() -> float | None:
     for hwmon in sorted(Path("/sys/class/hwmon").glob("hwmon*")):
         try:
@@ -309,6 +352,10 @@ def run_study(phase: str, out: Path, url: str, venvs: Path, client_cpu: int | No
     (out / "rounds").mkdir(exist_ok=True)
     counts = SMOKE_CALLS if phase == "smoke" else CALLS
     setup(url)
+    reset_batch(url)
+    cookies = cookie_record(url)
+    (out / "set_cookie.txt").write_text(cookies + "\n")
+    print(cookies, flush=True)
     for cell in CELLS:  # one discarded process per cell, so that round 0 does not meet a cold server
         run_one(url, venvs, out, cell, "httpx", counts[cell], client_cpu)
     print("server warm-up done", flush=True)
@@ -351,6 +398,7 @@ def run_study(phase: str, out: Path, url: str, venvs: Path, client_cpu: int | No
             text += "".join(f"  {cell} {wall:.1f}\n" for cell, wall in walls.items())
             text += f"  one round {sum(walls.values()):.1f}\n"
         code = 0
+    text = f"{cookies}\n{text}"
     (out / "analysis.txt").write_text(text)
     print(text)
     return code
@@ -375,9 +423,36 @@ def verdict(low: float, high: float) -> str:
     return "AT THE EDGE"
 
 
+def worth(readings: dict[tuple[str, str], tuple[float, float]]) -> str:
+    """The registered answer, from the (low, high) intervals of httpx2 / httpx that could be read, by (cell, metric)."""
+    wall = {cell: readings.get((cell, "wall_us")) for cell in CELLS}
+    gains = [cell for cell in COMMON_CELLS if (r := wall[cell]) and r[1] <= GAIN_WORTH]
+    costs = [
+        f"{cell} {metric}"
+        for cell in CELLS
+        for metric, limit in COST_LIMITS.items()
+        if (r := readings.get((cell, metric))) and r[0] > limit
+    ]
+    unread = [cell for cell in CELLS if wall[cell] is None]
+    no_gain = all((r := wall[cell]) and r[0] > GAIN_WORTH for cell in COMMON_CELLS)
+    if gains and costs:
+        word = "MIXED"
+    elif no_gain:
+        word = "NOT WORTH IT"
+    elif gains and not unread:
+        word = "WORTH IT"
+    else:
+        word = "UNDECIDED"
+    return (
+        f"{word}  (common calls with the whole interval at or below {GAIN_WORTH}: {', '.join(gains) or 'none'}; "
+        f"costs: {', '.join(costs) or 'none read'}; cells without a wall time reading: {', '.join(unread) or 'none'})"
+    )
+
+
 def report(records: list[dict[str, Any]], phase: str) -> tuple[str, int]:
     lines = [f"hx2 server study, phase {phase}: {len(records)} rounds"]
     worst = 0
+    readings: dict[tuple[str, str], tuple[float, float]] = {}
     for cell in CELLS:
         blocks = [r["cells"][cell] for r in records]
         if phase == "main":
@@ -417,12 +492,15 @@ def report(records: list[dict[str, Any]], phase: str) -> tuple[str, int]:
                         worst = max(worst, 3)
                     lines.append(f"{label}: WEAK, the interval is too wide, no ratio is reported")
                     continue
+                if (arm, base) == ("httpx2", "httpx"):
+                    readings[cell, metric] = (low, high)
                 gap, gap_low, gap_high = interval([a - b for a, b in zip(values[arm], values[base], strict=True)])
                 lines.append(
                     f"{label} {middle:.3f} [{low:.3f}, {high:.3f}] rounds {min(ratios):.3f} to {max(ratios):.3f}  "
                     f"{word}  difference {gap:+.1f} [{gap_low:+.1f}, {gap_high:+.1f}]  "
                     f"medians {statistics.median(values[arm]):.1f} and {statistics.median(values[base]):.1f}"
                 )
+    lines.append(f"\nhttpx2 against httpx for a driver user: {worth(readings)}")
     return "\n".join(lines) + "\n", worst
 
 
@@ -453,6 +531,14 @@ def selftest() -> None:
     text, code = report(made({}, throttle=5000), "main")
     assert code == 3 and "fewer than 18 clean rounds" in text, text
     assert verdict(0.9, 1.05) == "WEAK" and verdict(0.95, 0.99) == "AT THE EDGE"
+    for factor, word in ((0.83, "WORTH IT"), (0.95, "NOT WORTH IT"), (1.2, "NOT WORTH IT")):
+        text, _ = report(made({"httpx2": factor}), "main")
+        assert f"for a driver user: {word}  " in text, text
+    assert "for a driver user: UNDECIDED  " in report(made({}, throttle=5000), "main")[0]
+    some = {("query1", "wall_us"): (0.80, 0.82), ("txcommand", "wall_us"): (0.95, 0.97)}
+    assert worth(some).startswith("UNDECIDED"), "a gain with unread cells"
+    assert worth(some | {("batch", "wall_us"): (1.05, 1.10)}).startswith("MIXED"), "a gain and a slower cell"
+    assert worth(some | {("read100", "rss_peak_kib"): (1.15, 1.20)}).startswith("MIXED"), "a gain and more memory"
     for arms in (ARMS, ARMS_OF["batch"]):
         orders = [arm_order(arms, n) for n in range(ROUNDS["main"])]
         for position in range(len(arms)):

@@ -38,15 +38,31 @@ jobs:
           kit="$RUNNER_TEMP/kit"
           mkdir -p "$kit/src/main" "$kit/src/spike" "$kit/arms"
           cp spike/hx2-server/hx2_server.py spike/hx2-server/run_ab.sh spike/hx2-server/config.env "$kit/"
-          cp -r spike/hx2/arms/httpx spike/hx2/arms/httpx2 "$kit/arms/"
+          cp -r spike/hx2-server/arms/httpx spike/hx2/arms/httpx2 "$kit/arms/"
           . spike/hx2-server/config.env
           git archive "$HX2_COMMIT_MAIN:python/packages/driver" | tar -x -C "$kit/src/main"
           git archive "$HX2_COMMIT_SPIKE:python/packages/driver" | tar -x -C "$kit/src/spike"
           # The build backend drops files that the nearest .gitignore matches.
           touch "$kit/src/main/.gitignore" "$kit/src/spike/.gitignore"
+          if [ ! -f "$kit/arms/httpx/uv.lock" ]; then
+            # first lock of this arm: the lock of the client-only arm with httpx moved up, every other pin kept where it can be
+            cp spike/hx2/arms/httpx/uv.lock "$kit/arms/httpx/"
+            uv lock --project "$kit/arms/httpx" --python 3.12 --upgrade-package httpx
+          fi
+          uv lock --check --project "$kit/arms/httpx" --python 3.12
+          diff spike/hx2/arms/httpx/uv.lock "$kit/arms/httpx/uv.lock" || true
+          uv run --no-project --python 3.12 python -I -B -c 'import pathlib, sys, tomllib
+          a, b = ({p["name"]: p.get("version") for p in tomllib.loads(pathlib.Path(n).read_text())["package"]} for n in sys.argv[1:])
+          for name in sorted(a.keys() | b.keys()): print(f"{name:22s} httpx arm {a.get(name)}  httpx2 arm {b.get(name)}")' \
+            "$kit/arms/httpx/uv.lock" "$kit/arms/httpx2/uv.lock"
           cd "$kit"
           find . -type f ! -name SHA256SUMS -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > SHA256SUMS
           sha256sum hx2_server.py run_ab.sh config.env arms/*/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: httpx-lock
+          path: ${{ runner.temp }}/kit/arms/httpx/uv.lock
+          if-no-files-found: error
       - name: Guards of the runner script
         run: |
           cd "$RUNNER_TEMP/kit"
@@ -63,6 +79,7 @@ jobs:
           grep -v -E '^[0-9a-f]{64}  ' smoke/env.txt || true
           if [ "$rc" != 0 ]; then tail -n 40 smoke/sync.log || true; tail -n 120 smoke/server.log || true; exit "$rc"; fi
           test -z "$(docker ps -aq --filter name=hx2s-server)"
+          cat smoke/analysis.txt
           grep -q '^SMOKE PASSED' smoke/analysis.txt
           test -z "$(ls smoke/rounds)"
       - name: Pace of one round with the main call counts (block wall times only)
