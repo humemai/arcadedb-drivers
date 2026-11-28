@@ -1,21 +1,21 @@
 """`httpx_args` reaches the httpx client the facade owns, and the default changes nothing."""
 
-import httpx
+import httpx2
 import pytest
 from arcadedb_driver import ArcadeDBServer, AsyncArcadeDBServer
 
 BASE_URL = "http://db.test"
 
 
-def _ok(request: httpx.Request) -> httpx.Response:
-    return httpx.Response(204)
+def _ok(request: httpx2.Request) -> httpx2.Response:
+    return httpx2.Response(204)
 
 
 def _server_with_hooks(seen: list[str]) -> ArcadeDBServer:
     return ArcadeDBServer(
         base_url=BASE_URL,
         httpx_args={
-            "transport": httpx.MockTransport(_ok),
+            "transport": httpx2.MockTransport(_ok),
             "event_hooks": {"request": [lambda request: seen.append(str(request.url))]},
         },
     )
@@ -51,7 +51,7 @@ async def test_httpx_args_reach_the_async_client() -> None:
     async with AsyncArcadeDBServer(
         base_url=BASE_URL,
         httpx_args={
-            "transport": httpx.MockTransport(_ok),
+            "transport": httpx2.MockTransport(_ok),
             "event_hooks": {"request": [lambda request: _record(seen, request)]},
         },
     ) as srv:
@@ -59,7 +59,7 @@ async def test_httpx_args_reach_the_async_client() -> None:
     assert seen == [f"{BASE_URL}/api/v1/ready"]
 
 
-async def _record(seen: list[str], request: httpx.Request) -> None:
+async def _record(seen: list[str], request: httpx2.Request) -> None:
     seen.append(str(request.url))
 
 
@@ -70,7 +70,7 @@ async def test_async_with_token_keeps_httpx_args() -> None:
         AsyncArcadeDBServer(
             base_url=BASE_URL,
             httpx_args={
-                "transport": httpx.MockTransport(_ok),
+                "transport": httpx2.MockTransport(_ok),
                 "event_hooks": {"request": [lambda request: _record(seen, request)]},
             },
         ) as srv,

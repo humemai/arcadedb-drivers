@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class McpConfigPrincipalProfilesAdditionalProperty(str, Enum):
+class McpConfigPrincipalProfilesAdditionalProperty(StrEnum):
     ADMIN = "admin"
     ALL = "all"
     RAG = "rag"

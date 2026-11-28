@@ -16,7 +16,7 @@ from functools import cached_property
 from types import TracebackType
 from typing import Any, Literal
 
-import httpx
+import httpx2
 
 from ._generated.api.auth import list_sessions, login, logout
 from ._generated.api.command import execute_command
@@ -280,13 +280,13 @@ class AsyncArcadeDBDatabase:
         the label the transaction's begin request set.
 
         `timeout` applies to THIS call only and replaces the client's timeout for it. A `float` sets
-        all four httpx phases (connect, write, read, pool) to that many seconds, an `httpx.Timeout`
+        all four httpx phases (connect, write, read, pool) to that many seconds, an `httpx2.Timeout`
         sets them separately, `None` removes every timeout for the call, and omitting it keeps the
         client's own timeout (the `timeout` given to the server object, which is no timeout when
         that was omitted too). httpx counts a timeout per phase, not as a deadline for the whole
         call: the read timeout is the longest single wait for response bytes, so a server that
-        keeps answering slowly is not cut off. A phase that runs out raises `httpx.TimeoutException`
-        (for example `httpx.ReadTimeout`), the same exception the client-level timeout raises; it
+        keeps answering slowly is not cut off. A phase that runs out raises `httpx2.TimeoutException`
+        (for example `httpx2.ReadTimeout`), the same exception the client-level timeout raises; it
         is not wrapped in `ArcadeDBError`.
         """
         http = self._client.get_async_httpx_client()
@@ -332,13 +332,13 @@ class AsyncArcadeDBDatabase:
         the label the transaction's begin request set.
 
         `timeout` applies to THIS call only and replaces the client's timeout for it. A `float` sets
-        all four httpx phases (connect, write, read, pool) to that many seconds, an `httpx.Timeout`
+        all four httpx phases (connect, write, read, pool) to that many seconds, an `httpx2.Timeout`
         sets them separately, `None` removes every timeout for the call, and omitting it keeps the
         client's own timeout (the `timeout` given to the server object, which is no timeout when
         that was omitted too). httpx counts a timeout per phase, not as a deadline for the whole
         call: the read timeout is the longest single wait for response bytes, so a server that
-        keeps answering slowly is not cut off. A phase that runs out raises `httpx.TimeoutException`
-        (for example `httpx.ReadTimeout`), the same exception the client-level timeout raises; it
+        keeps answering slowly is not cut off. A phase that runs out raises `httpx2.TimeoutException`
+        (for example `httpx2.ReadTimeout`), the same exception the client-level timeout raises; it
         is not wrapped in `ArcadeDBError`.
         """
         http = self._client.get_async_httpx_client()
@@ -402,12 +402,12 @@ class AsyncArcadeDBDatabase:
         header. This is a separate method, not a mode.
 
         `timeout` applies to THIS call only and replaces the client's timeout for it: a `float` sets
-        all four httpx phases (connect, write, read, pool), an `httpx.Timeout` sets them
+        all four httpx phases (connect, write, read, pool), an `httpx2.Timeout` sets them
         separately, `None` removes every timeout for the call, and omitting it keeps the client's
         own. httpx counts a timeout per phase, not as a deadline for the whole call, so a stream
         that keeps delivering rows never trips the read timeout: it bounds each wait for the next
-        chunk, not the stream. A phase that runs out raises `httpx.TimeoutException` from the
-        iterator (for example `httpx.ReadTimeout`, possibly after rows were already yielded); it
+        chunk, not the stream. A phase that runs out raises `httpx2.TimeoutException` from the
+        iterator (for example `httpx2.ReadTimeout`, possibly after rows were already yielded); it
         is not wrapped in `ArcadeDBError`.
         """
         return astream_query(
@@ -450,12 +450,12 @@ class AsyncArcadeDBDatabase:
         the label the transaction's begin request set.
 
         `timeout` applies to THIS call only and replaces the client's timeout for it: a `float` sets
-        all four httpx phases (connect, write, read, pool), an `httpx.Timeout` sets them
+        all four httpx phases (connect, write, read, pool), an `httpx2.Timeout` sets them
         separately, `None` removes every timeout for the call, and omitting it keeps the client's
         own. httpx counts a timeout per phase, not as a deadline for the whole call, so a stream
         that keeps delivering rows never trips the read timeout: it bounds each wait for the next
-        chunk, not the stream. A phase that runs out raises `httpx.TimeoutException` from the
-        iterator (for example `httpx.ReadTimeout`, possibly after rows were already yielded); it
+        chunk, not the stream. A phase that runs out raises `httpx2.TimeoutException` from the
+        iterator (for example `httpx2.ReadTimeout`, possibly after rows were already yielded); it
         is not wrapped in `ArcadeDBError`.
         """
         return astream_command(
@@ -669,7 +669,7 @@ class AsyncArcadeDBDatabase:
 class AsyncArcadeDBServer:
     """The async twin of `ArcadeDBServer`.
 
-    An async context manager because the underlying `httpx.AsyncClient` owns a
+    An async context manager because the underlying `httpx2.AsyncClient` owns a
     connection pool that must be released. Use `async with`, or `await aclose()`.
 
     `timeout` defaults to `None`, and in httpx an explicit `None` means NO
@@ -679,12 +679,12 @@ class AsyncArcadeDBServer:
     defaults its own timeout to `None` and forwards it exactly the same way, so
     changing only the facade's default would make `AsyncArcadeDBServer` and
     `.raw` disagree against the same server; it also matches `@arcadedb/driver`,
-    where `fetch` has no default timeout either. Pass an `httpx.Timeout` to
+    where `fetch` has no default timeout either. Pass an `httpx2.Timeout` to
     bound requests.
 
     `httpx_args` is an optional mapping of extra keyword arguments passed to the underlying
-    `httpx.AsyncClient` constructor, for options this facade has no parameter for: `limits`,
-    `transport` (for example `httpx.AsyncHTTPTransport(retries=3)`), `http2`, `proxy`,
+    `httpx2.AsyncClient` constructor, for options this facade has no parameter for: `limits`,
+    `transport` (for example `httpx2.AsyncHTTPTransport(retries=3)`), `http2`, `proxy`,
     `event_hooks`. It must not repeat `base_url`, `headers`, `timeout`, `verify` or
     `cookies`, which the facade and the generated client already set. `with_token` keeps it.
     """
@@ -695,7 +695,7 @@ class AsyncArcadeDBServer:
         base_url: str,
         auth: Mapping[str, str] | None = None,
         headers: Mapping[str, str] | None = None,
-        timeout: httpx.Timeout | None = None,
+        timeout: httpx2.Timeout | None = None,
         verify_ssl: bool = True,
         httpx_args: Mapping[str, Any] | None = None,
     ) -> None:

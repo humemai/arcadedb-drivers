@@ -4,7 +4,7 @@ HAND-WRITTEN, unlike `query`/`command`: every generated operation (`execute_quer
 `execute_command.py`) calls `response.json()` inside its own `_parse_response` - there is no
 generated call this could ride even for the plain buffered body, let alone a streamed one. What is
 NOT hand-written is the transport: both the sync and async functions below reach for the generated
-`Client`'s own pooled `httpx.Client` / `httpx.AsyncClient` via `.stream()` - the same escape hatch
+`Client`'s own pooled `httpx2.Client` / `httpx2.AsyncClient` via `.stream()` - the same escape hatch
 `facade/timeseries.py`'s hand-written `write` already uses - so the base URL, auth headers and
 timeout come along for free instead of being reconstructed; the timeout is the client's unless a
 call passes its own `timeout`, which `.stream()` takes per request. A second transport is exactly
@@ -59,11 +59,11 @@ Two more things, the first of which both clients must solve and each solves in i
    `finally` calls `reader.cancel()`. What differs is the idiom, not the requirement.
 2. **Reading a non-2xx body before it can be reported.** A streaming response's body has not been
    read when its status line arrives - accessing `.content` before `.read()`/`.aread()` raises
-   `httpx.ResponseNotRead`. `ArcadeDBError` needs that body for the server's error detail, so it is
+   `httpx2.ResponseNotRead`. `ArcadeDBError` needs that body for the server's error detail, so it is
    read explicitly, exactly once, before `ArcadeDBError` is raised.
 
 **The line splitting is hand-rolled, deliberately, and must stay that way.**
-`httpx.Response.iter_lines()` / `.aiter_lines()` do buffer a partial line across chunk boundaries,
+`httpx2.Response.iter_lines()` / `.aiter_lines()` do buffer a partial line across chunk boundaries,
 which is why they look like the obvious thing to use here - but they split on `str.splitlines()`
 semantics, and that is a strictly larger set of line terminators than ndjson has. Besides `\\n` and
 `\\r`, `splitlines()` breaks on U+0085, U+2028 and U+2029, and all three are *legal raw characters

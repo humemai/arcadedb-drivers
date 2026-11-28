@@ -602,7 +602,7 @@ class AsyncInsertSession:
         try:
             await asyncio.wait_for(ws.send(proto.encode(frame)), s.timeout)
             raw = await asyncio.wait_for(ws.recv(), s.timeout)
-        except asyncio.TimeoutError as err:
+        except TimeoutError as err:
             s.is_open = False
             raise InsertSessionError(
                 f"Timeout of {s.timeout}s on a frame of /ws insert session '{s.session_id}'",

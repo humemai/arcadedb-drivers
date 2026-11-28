@@ -22,7 +22,7 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import quote
 
-import httpx
+import httpx2
 
 from .._generated.api.prom_ql import (
     prom_ql_label_values,
@@ -40,7 +40,7 @@ from .._internal.unwrap import unwrap
 from ..errors import ArcadeDBError
 
 
-def _json_response(raw: httpx.Response) -> dict[str, Any]:
+def _json_response(raw: httpx2.Response) -> dict[str, Any]:
     """Raises `ArcadeDBError` unless the server answered 2xx; otherwise returns the parsed JSON
     body unaltered. Bypasses the generated response model - see the module docstring."""
     if not 200 <= raw.status_code < 300:

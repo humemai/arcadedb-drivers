@@ -89,11 +89,11 @@ jobs:
 
       - name: Install Python dependencies
         working-directory: python
-        # --python 3.10 is the declared floor, matching ci-python.yml's build job. Left
+        # --python 3.11 is the workspace's floor, matching ci-python.yml's build job. Left
         # unpinned this would audit whatever interpreter uv happened to pick, and a
         # metadata API that breaks on a newer Python would surface here as a `uv run`
         # failure the collector reports as an unsynced workspace - the wrong diagnosis.
-        run: uv sync --frozen --python 3.10
+        run: uv sync --frozen --python 3.11
 
       - name: Download Go modules
         working-directory: go/arcadedb

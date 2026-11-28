@@ -22,7 +22,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-import httpx
+import httpx2
 
 from .._generated.models.create_user_request import CreateUserRequest
 from .._generated.models.error_response import ErrorResponse
@@ -51,7 +51,7 @@ def server_command_payload(command: str) -> dict[str, str]:
     return {"command": command, "language": "sql"}
 
 
-def server_command_response(raw: httpx.Response) -> dict[str, Any]:
+def server_command_response(raw: httpx2.Response) -> dict[str, Any]:
     """Raises `ArcadeDBError` unless the server answered 2xx; otherwise returns the parsed JSON
     body unaltered. Bypasses the generated response model - see the module docstring."""
     if not 200 <= raw.status_code < 300:

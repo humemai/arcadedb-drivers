@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class PromQLLabelsResponseStatus(str, Enum):
+class PromQLLabelsResponseStatus(StrEnum):
     SUCCESS = "success"
 
     def __str__(self) -> str:

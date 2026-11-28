@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class TimeSeriesQueryRequestAggregationRequestsItemType(str, Enum):
+class TimeSeriesQueryRequestAggregationRequestsItemType(StrEnum):
     AVG = "AVG"
     COUNT = "COUNT"
     MAX = "MAX"

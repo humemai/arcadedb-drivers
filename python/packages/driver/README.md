@@ -16,7 +16,7 @@ starts the registry publish.
 
 ## Requirements
 
-- Python `>=3.10`.
+- Python `>=3.11`.
 - An ArcadeDB server at or near the version in the compatibility table below.
 
 ## Installation

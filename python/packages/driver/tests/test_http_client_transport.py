@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Literal
 
-import httpx
+import httpx2
 import pytest
 from arcadedb_driver import ArcadeDBDatabase, ArcadeDBError, ArcadeDBServer, QueryEnvelope, basic_auth
 from arcadedb_driver._internal.http_client import HttpClientTransport, TransportName, _Slot, encode_json
@@ -275,7 +275,7 @@ def outcome(db: ArcadeDBDatabase, command: str, **kwargs: Any) -> tuple[Any, ...
 def test_the_default_transport_is_httpx(fake: FakeArcadeDB) -> None:
     with ArcadeDBServer(base_url=fake.url) as srv:
         srv.db("d").query(language="sql", command="SELECT 1")
-    assert fake.seen[0].headers["user-agent"].startswith("python-httpx/")
+    assert fake.seen[0].headers["user-agent"].startswith("python-httpx2/")
 
 
 def test_http_client_sends_its_own_user_agent_and_httpx_defaults(fake: FakeArcadeDB) -> None:
@@ -462,7 +462,7 @@ def test_a_closed_connection_never_fails_a_call_and_never_sends_one_twice(
 
 
 def test_a_hang_up_on_a_new_connection_is_not_retried(fake: FakeArcadeDB, transport: TransportName) -> None:
-    with connect(fake, transport) as srv, pytest.raises(httpx.RemoteProtocolError):
+    with connect(fake, transport) as srv, pytest.raises(httpx2.RemoteProtocolError):
         srv.db("d").query(language="sql", command="HANGUP")
     assert fake.commands() == ["HANGUP"]
 
@@ -471,7 +471,7 @@ def test_a_hang_up_on_a_reused_connection_is_resent_once_and_then_raised(fake: F
     with connect(fake, "http.client") as srv:
         db = srv.db("d")
         db.query(language="sql", command="SELECT 1")
-        with pytest.raises(httpx.RemoteProtocolError):
+        with pytest.raises(httpx2.RemoteProtocolError):
             db.query(language="sql", command="HANGUP")
         assert srv._transport is not None
         assert srv._transport.stale_retries == 1
@@ -482,7 +482,7 @@ def test_a_failure_after_the_headers_were_read_is_not_retried(fake: FakeArcadeDB
     with connect(fake, transport) as srv:
         db = srv.db("d")
         db.query(language="sql", command="SELECT 1")
-        with pytest.raises(httpx.RemoteProtocolError):
+        with pytest.raises(httpx2.RemoteProtocolError):
             db.query(language="sql", command="PARTIAL")
         assert db.query(language="sql", command="SELECT 2").result[0]["echo"] == "SELECT 2"
     assert fake.commands() == ["SELECT 1", "PARTIAL", "SELECT 2"]
@@ -491,9 +491,9 @@ def test_a_failure_after_the_headers_were_read_is_not_retried(fake: FakeArcadeDB
 def test_a_read_timeout_raises_httpx_read_timeout_and_the_connection_is_not_reused(
     fake: FakeArcadeDB, transport: TransportName
 ) -> None:
-    with connect(fake, transport, timeout=httpx.Timeout(0.2)) as srv:
+    with connect(fake, transport, timeout=httpx2.Timeout(0.2)) as srv:
         db = srv.db("d")
-        with pytest.raises(httpx.ReadTimeout):
+        with pytest.raises(httpx2.ReadTimeout):
             db.query(language="sql", command="SLOW")
         assert db.query(language="sql", command="after").result[0]["echo"] == "after"  # not the late answer to SLOW
     assert fake.accepted == 2
@@ -501,17 +501,17 @@ def test_a_read_timeout_raises_httpx_read_timeout_and_the_connection_is_not_reus
 
 def test_a_per_call_timeout_replaces_the_clients(fake: FakeArcadeDB) -> None:
     fake.delay = 0.4
-    with connect(fake, "http.client", timeout=httpx.Timeout(10.0)) as srv:
+    with connect(fake, "http.client", timeout=httpx2.Timeout(10.0)) as srv:
         transport = srv._transport
         assert transport is not None
         db = srv.db("d")
         path = f"/api/v1/command/{db.name}"
         headers = transport.headers_for({"Content-Type": "application/json"})
         body = encode_json({"command": "SLOW", "language": "sql"})
-        with pytest.raises(httpx.ReadTimeout):
+        with pytest.raises(httpx2.ReadTimeout):
             transport.request("POST", path, headers, body, timeout=0.1)
-        with pytest.raises(httpx.ReadTimeout):
-            transport.request("POST", path, headers, body, timeout=httpx.Timeout(connect=5, read=0.1, write=5, pool=5))
+        with pytest.raises(httpx2.ReadTimeout):
+            transport.request("POST", path, headers, body, timeout=httpx2.Timeout(connect=5, read=0.1, write=5, pool=5))
         assert transport.request("POST", path, headers, body, timeout=None).status == 200  # None: no timeout
         assert transport.request("POST", path, headers, encode_json({"command": "x", "language": "sql"})).status == 200
 
@@ -520,10 +520,10 @@ def test_the_per_call_timeout_of_query_and_command_reaches_both_transports(
     fake: FakeArcadeDB, transport: TransportName
 ) -> None:
     fake.delay = 0.4
-    with connect(fake, transport, timeout=httpx.Timeout(10.0)) as srv:
+    with connect(fake, transport, timeout=httpx2.Timeout(10.0)) as srv:
         db = srv.db("d")
         for call in (db.query, db.command):
-            with pytest.raises(httpx.ReadTimeout):
+            with pytest.raises(httpx2.ReadTimeout):
                 call(language="sql", command="SLOW", timeout=0.1)
             call(language="sql", command="SLOW", timeout=None)  # None: no timeout, the slow answer is waited for
         # omitted: the client's own timeout, 10 s
@@ -536,7 +536,7 @@ def test_a_refused_connection_raises_httpx_connect_error(transport: TransportNam
         port = probe.getsockname()[1]
     with (
         ArcadeDBServer(base_url=f"http://127.0.0.1:{port}", transport=transport) as srv,
-        pytest.raises(httpx.ConnectError),
+        pytest.raises(httpx2.ConnectError),
     ):
         srv.db("d").query(language="sql", command="SELECT 1")
 
@@ -592,8 +592,8 @@ def test_streams_and_other_calls_stay_on_httpx(fake: FakeArcadeDB) -> None:
     assert len(events) == 3
     agents = [s.headers["user-agent"] for s in fake.seen]
     assert agents[0] == "arcadedb-driver"
-    assert agents[1].startswith("python-httpx/")
-    assert agents[2].startswith("python-httpx/")
+    assert agents[1].startswith("python-httpx2/")
+    assert agents[2].startswith("python-httpx2/")
 
 
 def test_with_token_keeps_the_transport(fake: FakeArcadeDB) -> None:

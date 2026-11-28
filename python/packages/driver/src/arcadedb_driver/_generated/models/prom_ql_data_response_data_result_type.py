@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class PromQLDataResponseDataResultType(str, Enum):
+class PromQLDataResponseDataResultType(StrEnum):
     MATRIX = "matrix"
     SCALAR = "scalar"
     VECTOR = "vector"

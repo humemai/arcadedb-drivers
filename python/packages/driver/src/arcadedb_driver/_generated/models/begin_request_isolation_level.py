@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class BeginRequestIsolationLevel(str, Enum):
+class BeginRequestIsolationLevel(StrEnum):
     READ_COMMITTED = "READ_COMMITTED"
     REPEATABLE_READ = "REPEATABLE_READ"
 

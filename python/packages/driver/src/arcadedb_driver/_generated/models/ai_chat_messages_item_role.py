@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class AiChatMessagesItemRole(str, Enum):
+class AiChatMessagesItemRole(StrEnum):
     ASSISTANT = "assistant"
     USER = "user"
 

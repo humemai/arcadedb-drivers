@@ -1,11 +1,11 @@
 """Tests for the per-call `timeout` argument of `query`, `command`, `query_stream` and
 `command_stream`, sync and async.
 
-No network and no server: every case goes through `httpx.MockTransport`. The transport cannot make
+No network and no server: every case goes through `httpx2.MockTransport`. The transport cannot make
 a real clock run out, but httpx hands it the timeout it resolved for the request as
 `request.extensions["timeout"]` (a dict with the `connect`, `read`, `write` and `pool` phases), so
 two things are checked from there: the exact value that reached httpx, and a handler that plays a
-server needing `SERVER_DELAY_S` seconds to answer and raises `httpx.ReadTimeout` when the read
+server needing `SERVER_DELAY_S` seconds to answer and raises `httpx2.ReadTimeout` when the read
 phase is shorter than that, which is what the real transport does when the wait runs out.
 """
 
@@ -15,13 +15,13 @@ import json
 from collections.abc import Callable
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from arcadedb_driver import ArcadeDBDatabase, ArcadeDBError, ArcadeDBServer, AsyncArcadeDBDatabase, AsyncArcadeDBServer
 
 BASE_URL = "http://db.test"
 SERVER_DELAY_S = 5.0
-CLIENT_TIMEOUT = httpx.Timeout(30.0)
+CLIENT_TIMEOUT = httpx2.Timeout(30.0)
 
 ENVELOPE = {"result": [{"a": 1}], "limit": 100, "returned": 1, "truncated": False}
 NDJSON = (
@@ -33,33 +33,33 @@ KINDS = ["query", "command", "query_stream", "command_stream"]
 Seen = list[dict[str, float | None]]
 
 
-def _handler(kind: str, seen: Seen) -> Callable[[httpx.Request], httpx.Response]:
-    def handle(request: httpx.Request) -> httpx.Response:
+def _handler(kind: str, seen: Seen) -> Callable[[httpx2.Request], httpx2.Response]:
+    def handle(request: httpx2.Request) -> httpx2.Response:
         phases: dict[str, float | None] = request.extensions["timeout"]
         seen.append(phases)
         read = phases["read"]
         if read is not None and read < SERVER_DELAY_S:
-            raise httpx.ReadTimeout("the server did not answer in time", request=request)
+            raise httpx2.ReadTimeout("the server did not answer in time", request=request)
         if kind.endswith("_stream"):
-            return httpx.Response(200, content=NDJSON, headers={"Content-Type": "application/x-ndjson"})
-        return httpx.Response(200, json=ENVELOPE)
+            return httpx2.Response(200, content=NDJSON, headers={"Content-Type": "application/x-ndjson"})
+        return httpx2.Response(200, json=ENVELOPE)
 
     return handle
 
 
-def sync_db(kind: str, seen: Seen, client_timeout: httpx.Timeout | None) -> ArcadeDBDatabase:
+def sync_db(kind: str, seen: Seen, client_timeout: httpx2.Timeout | None) -> ArcadeDBDatabase:
     srv = ArcadeDBServer(base_url=BASE_URL, timeout=client_timeout)
     srv.raw.set_httpx_client(
-        httpx.Client(base_url=BASE_URL, timeout=client_timeout, transport=httpx.MockTransport(_handler(kind, seen)))
+        httpx2.Client(base_url=BASE_URL, timeout=client_timeout, transport=httpx2.MockTransport(_handler(kind, seen)))
     )
     return srv.db("mydb")
 
 
-def async_db(kind: str, seen: Seen, client_timeout: httpx.Timeout | None) -> AsyncArcadeDBDatabase:
+def async_db(kind: str, seen: Seen, client_timeout: httpx2.Timeout | None) -> AsyncArcadeDBDatabase:
     srv = AsyncArcadeDBServer(base_url=BASE_URL, timeout=client_timeout)
     srv.raw.set_async_httpx_client(
-        httpx.AsyncClient(
-            base_url=BASE_URL, timeout=client_timeout, transport=httpx.MockTransport(_handler(kind, seen))
+        httpx2.AsyncClient(
+            base_url=BASE_URL, timeout=client_timeout, transport=httpx2.MockTransport(_handler(kind, seen))
         )
     )
     return srv.db("mydb")
@@ -91,7 +91,9 @@ class TestSync:
     def test_an_httpx_timeout_keeps_its_phases_apart(self, kind: str) -> None:
         seen: Seen = []
         call(
-            sync_db(kind, seen, CLIENT_TIMEOUT), kind, timeout=httpx.Timeout(connect=1.0, read=6.0, write=3.0, pool=4.0)
+            sync_db(kind, seen, CLIENT_TIMEOUT),
+            kind,
+            timeout=httpx2.Timeout(connect=1.0, read=6.0, write=3.0, pool=4.0),
         )
         assert seen == [{"connect": 1.0, "read": 6.0, "write": 3.0, "pool": 4.0}]
 
@@ -119,7 +121,7 @@ class TestSync:
 
     def test_a_slow_server_and_a_short_per_call_timeout_raise_a_read_timeout(self, kind: str) -> None:
         seen: Seen = []
-        with pytest.raises(httpx.ReadTimeout) as err:
+        with pytest.raises(httpx2.ReadTimeout) as err:
             call(sync_db(kind, seen, None), kind, timeout=0.5)
         assert not isinstance(err.value, ArcadeDBError)
         assert seen == [phases(0.5)]
@@ -143,7 +145,7 @@ class TestAsync:
 
     async def test_an_httpx_timeout_keeps_its_phases_apart(self, kind: str) -> None:
         seen: Seen = []
-        timeout = httpx.Timeout(connect=1.0, read=6.0, write=3.0, pool=4.0)
+        timeout = httpx2.Timeout(connect=1.0, read=6.0, write=3.0, pool=4.0)
         await acall(async_db(kind, seen, CLIENT_TIMEOUT), kind, timeout=timeout)
         assert seen == [{"connect": 1.0, "read": 6.0, "write": 3.0, "pool": 4.0}]
 
@@ -171,7 +173,7 @@ class TestAsync:
 
     async def test_a_slow_server_and_a_short_per_call_timeout_raise_a_read_timeout(self, kind: str) -> None:
         seen: Seen = []
-        with pytest.raises(httpx.ReadTimeout) as err:
+        with pytest.raises(httpx2.ReadTimeout) as err:
             await acall(async_db(kind, seen, None), kind, timeout=0.5)
         assert not isinstance(err.value, ArcadeDBError)
         assert seen == [phases(0.5)]

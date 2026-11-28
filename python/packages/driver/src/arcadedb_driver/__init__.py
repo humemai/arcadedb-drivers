@@ -9,7 +9,7 @@ from functools import cached_property
 from types import TracebackType
 from typing import Any
 
-import httpx
+import httpx2
 
 from ._generated.api.auth import list_sessions, login, logout
 from ._generated.api.command import execute_command
@@ -178,8 +178,8 @@ class ArcadeDBDatabase:
         """The envelope of an answer that came over the `http.client` transport.
 
         The common answer is read straight from the bytes, as `fast_envelope` does for httpx; every
-        other one is turned into an `httpx.Response` and takes the generated parse, `unwrap` and
-        `to_envelope`, so an error or an `explain` result is what it is over httpx.
+        other one is turned into an `httpx2.Response` and takes the generated parse, `unwrap` and
+        `to_envelope`, so an error or an `explain` result is what it is over httpx2.
         """
         envelope = fast_envelope_from_bytes(response.status, response.content)
         if envelope is not None:
@@ -216,13 +216,13 @@ class ArcadeDBDatabase:
         the label the transaction's begin request set.
 
         `timeout` applies to THIS call only and replaces the client's timeout for it. A `float` sets
-        all four httpx phases (connect, write, read, pool) to that many seconds, an `httpx.Timeout`
+        all four httpx phases (connect, write, read, pool) to that many seconds, an `httpx2.Timeout`
         sets them separately, `None` removes every timeout for the call, and omitting it keeps the
         client's own timeout (the `timeout` given to the server object, which is no timeout when
         that was omitted too). httpx counts a timeout per phase, not as a deadline for the whole
         call: the read timeout is the longest single wait for response bytes, so a server that
-        keeps answering slowly is not cut off. A phase that runs out raises `httpx.TimeoutException`
-        (for example `httpx.ReadTimeout`), the same exception the client-level timeout raises; it
+        keeps answering slowly is not cut off. A phase that runs out raises `httpx2.TimeoutException`
+        (for example `httpx2.ReadTimeout`), the same exception the client-level timeout raises; it
         is not wrapped in `ArcadeDBError`.
         """
         bound = self._bound
@@ -276,13 +276,13 @@ class ArcadeDBDatabase:
         the label the transaction's begin request set.
 
         `timeout` applies to THIS call only and replaces the client's timeout for it. A `float` sets
-        all four httpx phases (connect, write, read, pool) to that many seconds, an `httpx.Timeout`
+        all four httpx phases (connect, write, read, pool) to that many seconds, an `httpx2.Timeout`
         sets them separately, `None` removes every timeout for the call, and omitting it keeps the
         client's own timeout (the `timeout` given to the server object, which is no timeout when
         that was omitted too). httpx counts a timeout per phase, not as a deadline for the whole
         call: the read timeout is the longest single wait for response bytes, so a server that
-        keeps answering slowly is not cut off. A phase that runs out raises `httpx.TimeoutException`
-        (for example `httpx.ReadTimeout`), the same exception the client-level timeout raises; it
+        keeps answering slowly is not cut off. A phase that runs out raises `httpx2.TimeoutException`
+        (for example `httpx2.ReadTimeout`), the same exception the client-level timeout raises; it
         is not wrapped in `ArcadeDBError`.
         """
         bound = self._bound
@@ -352,12 +352,12 @@ class ArcadeDBDatabase:
         header. This is a separate method, not a mode.
 
         `timeout` applies to THIS call only and replaces the client's timeout for it: a `float` sets
-        all four httpx phases (connect, write, read, pool), an `httpx.Timeout` sets them
+        all four httpx phases (connect, write, read, pool), an `httpx2.Timeout` sets them
         separately, `None` removes every timeout for the call, and omitting it keeps the client's
         own. httpx counts a timeout per phase, not as a deadline for the whole call, so a stream
         that keeps delivering rows never trips the read timeout: it bounds each wait for the next
-        chunk, not the stream. A phase that runs out raises `httpx.TimeoutException` from the
-        iterator (for example `httpx.ReadTimeout`, possibly after rows were already yielded); it
+        chunk, not the stream. A phase that runs out raises `httpx2.TimeoutException` from the
+        iterator (for example `httpx2.ReadTimeout`, possibly after rows were already yielded); it
         is not wrapped in `ArcadeDBError`.
         """
         return stream_query(
@@ -400,12 +400,12 @@ class ArcadeDBDatabase:
         the label the transaction's begin request set.
 
         `timeout` applies to THIS call only and replaces the client's timeout for it: a `float` sets
-        all four httpx phases (connect, write, read, pool), an `httpx.Timeout` sets them
+        all four httpx phases (connect, write, read, pool), an `httpx2.Timeout` sets them
         separately, `None` removes every timeout for the call, and omitting it keeps the client's
         own. httpx counts a timeout per phase, not as a deadline for the whole call, so a stream
         that keeps delivering rows never trips the read timeout: it bounds each wait for the next
-        chunk, not the stream. A phase that runs out raises `httpx.TimeoutException` from the
-        iterator (for example `httpx.ReadTimeout`, possibly after rows were already yielded); it
+        chunk, not the stream. A phase that runs out raises `httpx2.TimeoutException` from the
+        iterator (for example `httpx2.ReadTimeout`, possibly after rows were already yielded); it
         is not wrapped in `ArcadeDBError`.
         """
         return stream_command(
@@ -635,7 +635,7 @@ class ArcadeDBServer:
     defaults its own timeout to `None` and forwards it exactly the same way, so
     changing only the facade's default would make `ArcadeDBServer` and `.raw`
     disagree against the same server; it also matches `@arcadedb/driver`, where
-    `fetch` has no default timeout either. Pass an `httpx.Timeout` to bound
+    `fetch` has no default timeout either. Pass an `httpx2.Timeout` to bound
     requests.
 
     `transport` chooses what carries `query`, `command` and the transaction calls (`begin`, `commit`,
@@ -646,7 +646,7 @@ class ArcadeDBServer:
     value raises `ValueError`.
     `httpx_args` is an optional mapping of extra keyword arguments passed to the underlying
     httpx client constructor, for options this facade has no parameter for: `limits`,
-    `transport` (for example `httpx.HTTPTransport(retries=3)`), `http2`, `proxy`,
+    `transport` (for example `httpx2.HTTPTransport(retries=3)`), `http2`, `proxy`,
     `event_hooks`. It must not repeat `base_url`, `headers`, `timeout`, `verify` or
     `cookies`, which the facade and the generated client already set. `with_token` keeps it.
     They configure the httpx client only: with `transport="http.client"` they do not apply to `query`,
@@ -659,7 +659,7 @@ class ArcadeDBServer:
         base_url: str,
         auth: Mapping[str, str] | None = None,
         headers: Mapping[str, str] | None = None,
-        timeout: httpx.Timeout | None = None,
+        timeout: httpx2.Timeout | None = None,
         verify_ssl: bool = True,
         transport: TransportName = "httpx",
         httpx_args: Mapping[str, Any] | None = None,

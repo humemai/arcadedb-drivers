@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class GetServerInfoMode(str, Enum):
+class GetServerInfoMode(StrEnum):
     BASIC = "basic"
     CLUSTER = "cluster"
     DEFAULT = "default"

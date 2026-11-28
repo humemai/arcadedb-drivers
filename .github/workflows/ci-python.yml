@@ -37,13 +37,14 @@ jobs:
 
       - name: Set up Python
         working-directory: python
-        # 3.10 is the declared floor. The e2e job below runs 3.14, so the two jobs
-        # together cover floor and current without a matrix.
-        run: uv python install 3.10
+        # 3.11 is arcadedb-driver's declared floor (httpx2 needs it). The e2e job below
+        # runs 3.14, so the two jobs together cover floor and current without a matrix,
+        # and grpc-floor covers arcadedb-driver-grpc's lower floor.
+        run: uv python install 3.11
 
       - name: Install dependencies
         working-directory: python
-        run: uv sync --frozen --python 3.10
+        run: uv sync --frozen --python 3.11
 
       - name: Lint
         working-directory: python
@@ -113,6 +114,51 @@ jobs:
       - name: Test
         working-directory: python
         run: uv run pytest
+
+      # httpx is still installed in the dev environment (respx and the generator use it), so
+      # a stray `import httpx` in the driver would pass every check above. Install the built
+      # wheel alone and require that httpx is neither present nor imported.
+      - name: Verify the built driver needs no httpx
+        working-directory: python
+        run: |
+          uv build --package arcadedb-driver --out-dir "$RUNNER_TEMP/dist-driver"
+          cd "$RUNNER_TEMP"
+          uv run --no-project --python 3.11 --with "$RUNNER_TEMP"/dist-driver/*.whl python - <<'PY'
+          import importlib.util
+          import sys
+
+          import arcadedb_driver
+          import arcadedb_driver.aio
+          import arcadedb_driver.facade.insert_session
+
+          assert importlib.util.find_spec("httpx") is None, "httpx is installed with the driver"
+          assert "httpx" not in sys.modules and "httpcore" not in sys.modules
+          assert "httpx2" in sys.modules
+          with arcadedb_driver.ArcadeDBServer(base_url="http://127.0.0.1:9") as server:
+              print(type(server.raw.get_httpx_client()))
+          PY
+
+  grpc-floor:
+    name: gRPC driver on its Python 3.10 floor
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: python/uv.lock
+
+      # The workspace resolves for 3.11, so the gRPC package, which still declares 3.10,
+      # is tested here from its wheel, outside the workspace.
+      - name: Test the gRPC wheel on Python 3.10
+        working-directory: python
+        run: |
+          uv build --package arcadedb-driver-grpc --out-dir dist-grpc
+          uv run --no-project --python 3.10 --with dist-grpc/*.whl --with pytest --with pytest-asyncio \
+            --with packaging pytest packages/driver-grpc/tests
 
   e2e:
     name: End-to-end against a real server

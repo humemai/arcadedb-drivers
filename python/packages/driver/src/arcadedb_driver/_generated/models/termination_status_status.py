@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class TerminationStatusStatus(str, Enum):
+class TerminationStatusStatus(StrEnum):
     COMPLETED = "completed"
     NOT_FOUND = "not found"
     TERMINATED = "terminated"

@@ -12,7 +12,7 @@ import json
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-import httpx
+import httpx2
 import pytest
 from arcadedb_driver import (
     ArcadeDBDatabase,
@@ -41,14 +41,14 @@ OK = {"result": [{"a": 1, "@rid": "#1:0"}, {"a": 2, "@rid": "#1:1"}], "limit": 2
 Seen = list[tuple[str, str, list[tuple[str, str]], bytes]]
 
 
-def snapshot(request: httpx.Request) -> tuple[str, str, list[tuple[str, str]], bytes]:
+def snapshot(request: httpx2.Request) -> tuple[str, str, list[tuple[str, str]], bytes]:
     """The request as the wire carries it: header names and values in order, so a reordering is a failure too."""
     headers = [(k.decode(), v.decode()) for k, v in request.headers.raw]
     return request.method, str(request.url), headers, request.read()
 
 
-def handler_for(seen: Seen, response: Callable[[], httpx.Response]) -> Callable[[httpx.Request], httpx.Response]:
-    def handle(request: httpx.Request) -> httpx.Response:
+def handler_for(seen: Seen, response: Callable[[], httpx2.Response]) -> Callable[[httpx2.Request], httpx2.Response]:
+    def handle(request: httpx2.Request) -> httpx2.Response:
         seen.append(snapshot(request))
         return response()
 
@@ -110,13 +110,13 @@ def legacy_command(client: Client, name: str, session_id: str | None, **kw: Any)
     return to_envelope(data)
 
 
-def server(handler: Callable[[httpx.Request], httpx.Response], base_url: str = BASE_URL) -> ArcadeDBServer:
+def server(handler: Callable[[httpx2.Request], httpx2.Response], base_url: str = BASE_URL) -> ArcadeDBServer:
     srv = ArcadeDBServer(base_url=base_url, auth=basic_auth("root", "pw"), headers={"X-Extra": "1"})
     srv.raw.set_httpx_client(
-        httpx.Client(
+        httpx2.Client(
             base_url=base_url,
             headers={"Authorization": basic_auth("root", "pw")["Authorization"], "X-Extra": "1"},
-            transport=httpx.MockTransport(handler),
+            transport=httpx2.MockTransport(handler),
         )
     )
     return srv
@@ -137,34 +137,34 @@ CALLS: list[dict[str, Any]] = [
 ]
 
 # every response shape the generated parse has an opinion about: it must produce the same outcome through the hot path
-RESPONSES: dict[str, Callable[[], httpx.Response]] = {
-    "ok": lambda: httpx.Response(200, json=OK),
-    "ok_empty": lambda: httpx.Response(200, json={"result": [], "limit": 1, "returned": 0, "truncated": True}),
-    "ok_extra_keys": lambda: httpx.Response(200, json={**OK, "future": {"x": 1}}),
-    "ok_no_result": lambda: httpx.Response(200, json={"limit": 1, "returned": 0, "truncated": False}),
-    "explain": lambda: httpx.Response(200, json={**OK, "result": [], "explain": "plan", "explainPlan": {"steps": []}}),
-    "explain_text_only": lambda: httpx.Response(200, json={**OK, "explain": "plan"}),
-    "graph_result": lambda: httpx.Response(200, json={**OK, "result": {"vertices": [], "edges": []}}),
-    "missing_limit": lambda: httpx.Response(200, json={"result": [], "returned": 0, "truncated": False}),
-    "empty_object": lambda: httpx.Response(200, json={}),
-    "not_an_object": lambda: httpx.Response(200, json=[1, 2]),
-    "rows_not_objects": lambda: httpx.Response(200, json={**OK, "result": [1, 2]}),
-    "rows_mixed": lambda: httpx.Response(200, json={**OK, "result": [{"a": 1}, "x"]}),
-    "row_pairs": lambda: httpx.Response(200, json={**OK, "result": [[["a", 1]]]}),
-    "not_json": lambda: httpx.Response(200, content=b"<html>"),
-    "empty_body": lambda: httpx.Response(200, content=b""),
-    "no_content_204": lambda: httpx.Response(204),
-    "created_201": lambda: httpx.Response(201, json=OK),
-    "bad_request": lambda: httpx.Response(
+RESPONSES: dict[str, Callable[[], httpx2.Response]] = {
+    "ok": lambda: httpx2.Response(200, json=OK),
+    "ok_empty": lambda: httpx2.Response(200, json={"result": [], "limit": 1, "returned": 0, "truncated": True}),
+    "ok_extra_keys": lambda: httpx2.Response(200, json={**OK, "future": {"x": 1}}),
+    "ok_no_result": lambda: httpx2.Response(200, json={"limit": 1, "returned": 0, "truncated": False}),
+    "explain": lambda: httpx2.Response(200, json={**OK, "result": [], "explain": "plan", "explainPlan": {"steps": []}}),
+    "explain_text_only": lambda: httpx2.Response(200, json={**OK, "explain": "plan"}),
+    "graph_result": lambda: httpx2.Response(200, json={**OK, "result": {"vertices": [], "edges": []}}),
+    "missing_limit": lambda: httpx2.Response(200, json={"result": [], "returned": 0, "truncated": False}),
+    "empty_object": lambda: httpx2.Response(200, json={}),
+    "not_an_object": lambda: httpx2.Response(200, json=[1, 2]),
+    "rows_not_objects": lambda: httpx2.Response(200, json={**OK, "result": [1, 2]}),
+    "rows_mixed": lambda: httpx2.Response(200, json={**OK, "result": [{"a": 1}, "x"]}),
+    "row_pairs": lambda: httpx2.Response(200, json={**OK, "result": [[["a", 1]]]}),
+    "not_json": lambda: httpx2.Response(200, content=b"<html>"),
+    "empty_body": lambda: httpx2.Response(200, content=b""),
+    "no_content_204": lambda: httpx2.Response(204),
+    "created_201": lambda: httpx2.Response(201, json=OK),
+    "bad_request": lambda: httpx2.Response(
         400, json={"error": "Invalid", "detail": "d"}, headers={"X-Request-Id": "r1"}
     ),
-    "unauthorized": lambda: httpx.Response(401, json={"error": "no"}),
-    "conflict": lambda: httpx.Response(409, json={"error": "c", "exception": "E", "help": "h"}),
-    "too_large": lambda: httpx.Response(413, json={"error": "big"}),
-    "server_error": lambda: httpx.Response(500, json={"error": "boom"}),
-    "server_error_html": lambda: httpx.Response(500, content=b"<html>oops</html>"),
-    "undocumented_418": lambda: httpx.Response(418, json={"error": "teapot"}),
-    "non_standard_status": lambda: httpx.Response(599, json={"error": "x"}),
+    "unauthorized": lambda: httpx2.Response(401, json={"error": "no"}),
+    "conflict": lambda: httpx2.Response(409, json={"error": "c", "exception": "E", "help": "h"}),
+    "too_large": lambda: httpx2.Response(413, json={"error": "big"}),
+    "server_error": lambda: httpx2.Response(500, json={"error": "boom"}),
+    "server_error_html": lambda: httpx2.Response(500, content=b"<html>oops</html>"),
+    "undocumented_418": lambda: httpx2.Response(418, json={"error": "teapot"}),
+    "non_standard_status": lambda: httpx2.Response(599, json={"error": "x"}),
 }
 
 
@@ -197,15 +197,15 @@ async def test_async_query_matches_the_generated_path(name: str) -> None:
     sync_srv = server(handler_for(seen_sync, RESPONSES[name]))
     async_srv = AsyncArcadeDBServer(base_url=BASE_URL, auth=basic_auth("root", "pw"), headers={"X-Extra": "1"})
 
-    async def handle(request: httpx.Request) -> httpx.Response:
+    async def handle(request: httpx2.Request) -> httpx2.Response:
         seen_async.append(snapshot(request))
         return RESPONSES[name]()
 
     async_srv.raw.set_async_httpx_client(
-        httpx.AsyncClient(
+        httpx2.AsyncClient(
             base_url=BASE_URL,
             headers={"Authorization": basic_auth("root", "pw")["Authorization"], "X-Extra": "1"},
-            transport=httpx.MockTransport(handle),
+            transport=httpx2.MockTransport(handle),
         )
     )
     with sync_srv:
@@ -260,8 +260,8 @@ def test_the_resolved_url_follows_a_base_url_prefix_and_a_swapped_client() -> No
         db.query(language="sql", command="x")
         db.command(language="sql", command="x")
         srv.raw.set_httpx_client(
-            httpx.Client(
-                base_url="http://other.test:2480", transport=httpx.MockTransport(handler_for(seen, RESPONSES["ok"]))
+            httpx2.Client(
+                base_url="http://other.test:2480", transport=httpx2.MockTransport(handler_for(seen, RESPONSES["ok"]))
             )
         )
         db.query(language="sql", command="x")

@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class HybridSearchRequestExpandDirection(str, Enum):
+class HybridSearchRequestExpandDirection(StrEnum):
     BOTH = "both"
     IN = "in"
     OUT = "out"

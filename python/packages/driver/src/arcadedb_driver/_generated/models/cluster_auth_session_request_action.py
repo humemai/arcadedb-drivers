@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ClusterAuthSessionRequestAction(str, Enum):
+class ClusterAuthSessionRequestAction(StrEnum):
     REVOKE = "revoke"
     VALIDATE = "validate"
 

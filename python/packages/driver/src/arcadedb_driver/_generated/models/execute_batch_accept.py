@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ExecuteBatchAccept(str, Enum):
+class ExecuteBatchAccept(StrEnum):
     APPLICATIONJSON = "application/json"
     APPLICATIONX_NDJSON = "application/x-ndjson"
 

@@ -18,10 +18,10 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-import httpx
+import httpx2
 
 from .._generated.models.api_token_list import ApiTokenList
 from .._generated.models.api_token_list_result_item import ApiTokenListResultItem
@@ -40,7 +40,7 @@ LOGIN_URL = "/api/v1/login"
 #: starts with "at-" instead.
 SESSION_TOKEN_PREFIX = "AU-"
 
-_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+_EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 _TOKEN_HASH = re.compile(r"[0-9a-f]{64}")
 
 
@@ -133,7 +133,7 @@ def login_result(data: LoginResponse | ErrorResponse | None) -> LoginResult:
     return LoginResult(token=data.token, user=data.user)
 
 
-def login_as_response(raw: httpx.Response) -> LoginResult:
+def login_as_response(raw: httpx2.Response) -> LoginResult:
     """Raises `ArcadeDBError` unless the server answered 2xx; otherwise parses the body with the
     generated `LoginResponse`."""
     if not 200 <= raw.status_code < 300:

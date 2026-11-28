@@ -1,0 +1,56 @@
+name: hx2 smoke (fork only)
+
+# A setup check of the measurement script and a behaviour check of old httpx-style code against the
+# ported driver. It reports no speed figure: runners are shared and noisy.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "spike/207-httpx2"
+    paths:
+      - "spike/hx2/**"
+      - "python/packages/driver/**"
+      - ".github/workflows/hx2-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: false
+      - name: Static checks
+        working-directory: spike/hx2
+        run: |
+          uv run --no-project --python 3.12 python -B -c 'import pathlib; [compile(pathlib.Path(n).read_text(), n, "exec") for n in ("hx2_client.py", "breaks.py")]'
+          uvx pyflakes==3.4.0 hx2_client.py breaks.py
+          uv run --no-project --python 3.12 python -I -B hx2_client.py selftest
+      - name: Source trees and locked environments of the arms
+        working-directory: spike/hx2
+        run: |
+          mkdir -p src/main src/spike
+          # From the root: run in a subdirectory, `git archive <tree>` keeps only that path and writes nothing.
+          git -C "$GITHUB_WORKSPACE" archive 634e3c917e1f6212ec4510ea2209256837533705:python/packages/driver | tar -x -C src/main
+          git -C "$GITHUB_WORKSPACE" archive HEAD:python/packages/driver | tar -x -C src/spike
+          # The build backend drops files that the nearest .gitignore matches, and ours ignores src/.
+          touch src/main/.gitignore src/spike/.gitignore
+          for arm in httpx alias httpx2; do
+            UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/venv/$arm" uv sync --frozen --project "arms/$arm" --python 3.12
+          done
+      - name: Smoke of the measurement script (no figure)
+        working-directory: spike/hx2
+        run: |
+          "$RUNNER_TEMP/venv/httpx/bin/python" -I -B hx2_client.py study smoke "$RUNNER_TEMP/smoke" \
+            --venvs "$RUNNER_TEMP/venv" --client-cpu 0 --server-cpu 1
+      - name: Old httpx-style code against the ported driver
+        working-directory: spike/hx2
+        run: |
+          uv run --no-project --python 3.12 --with ./src/spike --with httpx==0.28.1 --with httpx2==2.16.2 \
+            --with respx==0.23.1 python -I -B breaks.py

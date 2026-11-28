@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class FacetResultType(str, Enum):
+class FacetResultType(StrEnum):
     DISTINCT = "distinct"
     HIERARCHY = "hierarchy"
     HISTOGRAM = "histogram"

@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class JsonRpcMessageType1ItemJsonrpc(str, Enum):
+class JsonRpcMessageType1ItemJsonrpc(StrEnum):
     VALUE_0 = "2.0"
 
     def __str__(self) -> str:

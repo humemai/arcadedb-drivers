@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class ExecuteQueryGetLanguage(str, Enum):
+class ExecuteQueryGetLanguage(StrEnum):
     CYPHER = "cypher"
     GRAPHQL = "graphql"
     GREMLIN = "gremlin"

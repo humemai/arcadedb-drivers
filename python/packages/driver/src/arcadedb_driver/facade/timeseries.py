@@ -32,7 +32,7 @@ import json
 from typing import Any, Literal
 from urllib.parse import quote
 
-import httpx
+import httpx2
 
 from .._generated.client import Client
 from .._generated.types import UNSET, Unset
@@ -46,7 +46,7 @@ def _write_url(database: str) -> str:
     return f"/api/v1/ts/{quote(database, safe='')}/write"
 
 
-def _raise_for_status(raw: httpx.Response) -> None:
+def _raise_for_status(raw: httpx2.Response) -> None:
     """Raises `ArcadeDBError` unless the server answered 2xx."""
     if not 200 <= raw.status_code < 300:
         raise ArcadeDBError.from_httpx_response(raw)
@@ -59,7 +59,7 @@ def _is_json_object(content: bytes) -> bool:
         return False
 
 
-def _write_response(raw: httpx.Response) -> None:
+def _write_response(raw: httpx2.Response) -> None:
     """Raises unless the server answered 2xx. The endpoint answers 204 with no body.
 
     A 400 whose body is a JSON object is the contract's `TimeSeriesWriteError` - a partial or
@@ -72,7 +72,7 @@ def _write_response(raw: httpx.Response) -> None:
     _raise_for_status(raw)
 
 
-def _json_response(raw: httpx.Response) -> dict[str, Any]:
+def _json_response(raw: httpx2.Response) -> dict[str, Any]:
     """Raises `ArcadeDBError` unless the server answered 2xx; otherwise returns the parsed JSON
     body unaltered. Bypasses the generated response model - see the module docstring."""
     _raise_for_status(raw)

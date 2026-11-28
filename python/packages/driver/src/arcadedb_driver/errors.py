@@ -10,10 +10,9 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Self
 
-import httpx
-from typing_extensions import Self
+import httpx2
 
 from ._generated.models.error_response import ErrorResponse
 from ._generated.types import Response
@@ -73,7 +72,7 @@ def _status_or(value: object, default: int) -> int:
 
 
 def _header(headers: Mapping[str, str], name: str) -> str | None:
-    """Reads one header case-insensitively from any mapping: an `httpx.Headers` already is, but
+    """Reads one header case-insensitively from any mapping: an `httpx2.Headers` already is, but
     the generated `Response.headers` is typed as a plain mapping."""
     value = headers.get(name)
     if value is not None:
@@ -175,8 +174,8 @@ class ArcadeDBError(Exception):
         return cls(int(response.status_code), body, **_header_fields(response.headers))
 
     @classmethod
-    def from_httpx_response(cls, response: httpx.Response) -> Self:
-        """Builds an error from a raw `httpx.Response`, the shape every hand-written call
+    def from_httpx_response(cls, response: httpx2.Response) -> Self:
+        """Builds an error from a raw `httpx2.Response`, the shape every hand-written call
         (`ts`, `grafana`, `batch_load`, the streaming endpoints) receives. The body must
         already have been read. `request_id`, `retry_after` and `commit_index` come from
         the headers.
