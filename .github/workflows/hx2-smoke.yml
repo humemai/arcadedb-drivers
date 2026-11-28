@@ -36,8 +36,9 @@ jobs:
         working-directory: spike/hx2
         run: |
           mkdir -p src/main src/spike
-          git archive 634e3c917e1f6212ec4510ea2209256837533705:python/packages/driver | tar -x -C src/main
-          git archive HEAD:python/packages/driver | tar -x -C src/spike
+          # From the root: run in a subdirectory, `git archive <tree>` keeps only that path and writes nothing.
+          git -C "$GITHUB_WORKSPACE" archive 634e3c917e1f6212ec4510ea2209256837533705:python/packages/driver | tar -x -C src/main
+          git -C "$GITHUB_WORKSPACE" archive HEAD:python/packages/driver | tar -x -C src/spike
           for arm in httpx alias httpx2; do
             UV_PROJECT_ENVIRONMENT="$RUNNER_TEMP/venv/$arm" uv sync --frozen --project "arms/$arm" --python 3.12
           done

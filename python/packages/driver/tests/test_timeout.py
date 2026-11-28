@@ -91,7 +91,9 @@ class TestSync:
     def test_an_httpx_timeout_keeps_its_phases_apart(self, kind: str) -> None:
         seen: Seen = []
         call(
-            sync_db(kind, seen, CLIENT_TIMEOUT), kind, timeout=httpx2.Timeout(connect=1.0, read=6.0, write=3.0, pool=4.0)
+            sync_db(kind, seen, CLIENT_TIMEOUT),
+            kind,
+            timeout=httpx2.Timeout(connect=1.0, read=6.0, write=3.0, pool=4.0),
         )
         assert seen == [{"connect": 1.0, "read": 6.0, "write": 3.0, "pool": 4.0}]
 

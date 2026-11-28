@@ -37,9 +37,9 @@ from __future__ import annotations
 
 import json
 from collections.abc import AsyncIterable, AsyncIterator, Iterable, Iterator
-from typing import Any
+from typing import Any, NotRequired
 
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import TypedDict
 
 
 class VertexRow(TypedDict):

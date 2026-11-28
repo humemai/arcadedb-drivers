@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 import httpx2
@@ -34,7 +34,7 @@ QueryStatus = Literal["terminated", "completed", "terminating", "not found"]
 #: shared with a request still in flight under the same X-Request-Id.
 QUERY_TERMINATED_EXCEPTION = "com.arcadedb.exception.QueryTerminatedException"
 
-_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+_EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
 @dataclass(frozen=True)

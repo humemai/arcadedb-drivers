@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from typing import Any
 
 import httpx
@@ -26,7 +26,6 @@ DATABASES = f"{BASE_URL}/api/v1/databases"
 SESSION_TOKEN = "AU-node-6f1c2d3e"
 API_TOKEN = "at-0123456789abcdef"
 HASH = "a" * 64
-UTC = timezone.utc
 DB_LIST = {"user": "root", "version": "26.12.1-SNAPSHOT", "serverName": "s", "result": []}
 
 TOKEN_FIELDS = {

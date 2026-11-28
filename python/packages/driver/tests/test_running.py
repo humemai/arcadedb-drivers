@@ -2,7 +2,7 @@
 26.11.1-SNAPSHOT server."""
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -72,7 +72,7 @@ def test_list_queries_sends_filters_and_decodes(kwargs: dict[str, str], command:
             protocol="http",
             language="sql",
             text="SLEEP 20000",
-            started_at=datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(milliseconds=1792137065792),
+            started_at=datetime(1970, 1, 1, tzinfo=UTC) + timedelta(milliseconds=1792137065792),
             elapsed=timedelta(milliseconds=1507),
             terminating=False,
             session_id="AS-1",

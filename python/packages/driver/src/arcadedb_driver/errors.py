@@ -10,10 +10,9 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Self
 
 import httpx2
-from typing_extensions import Self
 
 from ._generated.models.error_response import ErrorResponse
 from ._generated.types import Response

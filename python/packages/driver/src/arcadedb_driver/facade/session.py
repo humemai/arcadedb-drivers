@@ -18,7 +18,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx2
@@ -40,7 +40,7 @@ LOGIN_URL = "/api/v1/login"
 #: starts with "at-" instead.
 SESSION_TOKEN_PREFIX = "AU-"
 
-_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+_EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 _TOKEN_HASH = re.compile(r"[0-9a-f]{64}")
 
 

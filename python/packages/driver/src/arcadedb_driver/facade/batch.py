@@ -81,10 +81,10 @@ from __future__ import annotations
 
 import json
 from collections.abc import AsyncGenerator, AsyncIterable, Generator, Iterable
-from typing import Any
+from typing import Any, NotRequired
 from urllib.parse import quote
 
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import TypedDict
 
 from .._generated.client import Client
 from .._internal.batch_rows import EdgeRow, VertexRow, aiter_body, iter_body, iter_rows, serialize_rows
