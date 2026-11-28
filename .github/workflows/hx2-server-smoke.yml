@@ -1,0 +1,78 @@
+name: hx2 server smoke (fork only)
+
+# A setup check of the real-server measurement script against the pinned server image. It reports no figure of any arm:
+# runners are shared and noisy. The one timing it prints is the wall time of a block of arms, to size a run.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "spike/207-hx2-server"
+    paths:
+      - "spike/hx2-server/**"
+      - ".github/workflows/hx2-server-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: false
+      - name: Static checks
+        working-directory: spike/hx2-server
+        run: |
+          bash -n run_ab.sh
+          shellcheck -x run_ab.sh
+          uv run --no-project --python 3.12 python -B -c 'import pathlib; compile(pathlib.Path("hx2_server.py").read_text(), "hx2_server.py", "exec")'
+          uvx pyflakes==3.4.0 hx2_server.py
+          uv run --no-project --python 3.12 python -I -B hx2_server.py selftest
+      - name: Assemble the study folder
+        run: |
+          kit="$RUNNER_TEMP/kit"
+          mkdir -p "$kit/src/main" "$kit/src/spike" "$kit/arms"
+          cp spike/hx2-server/hx2_server.py spike/hx2-server/run_ab.sh spike/hx2-server/config.env "$kit/"
+          cp -r spike/hx2/arms/httpx spike/hx2/arms/httpx2 "$kit/arms/"
+          . spike/hx2-server/config.env
+          git archive "$HX2_COMMIT_MAIN:python/packages/driver" | tar -x -C "$kit/src/main"
+          git archive "$HX2_COMMIT_SPIKE:python/packages/driver" | tar -x -C "$kit/src/spike"
+          # The build backend drops files that the nearest .gitignore matches.
+          touch "$kit/src/main/.gitignore" "$kit/src/spike/.gitignore"
+          cd "$kit"
+          find . -type f ! -name SHA256SUMS -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > SHA256SUMS
+          sha256sum hx2_server.py run_ab.sh config.env arms/*/*
+      - name: Guards of the runner script
+        run: |
+          cd "$RUNNER_TEMP/kit"
+          rc=0; HX2_CI=1 OUT=main bash ./run_ab.sh || rc=$?; test "$rc" = 2
+          rc=0; OUT=pace bash ./run_ab.sh || rc=$?; test "$rc" = 2
+          rc=0; HX2_CI=1 OUT=smoke HUMEM_HOST_LANE=compare1 HUMEM_HOST_CPUS=0,1 taskset -c 0,1 bash ./run_ab.sh || rc=$?; test "$rc" = 5
+          rm -rf smoke
+      - name: Smoke against the real server (no figure)
+        run: |
+          cd "$RUNNER_TEMP/kit"
+          rc=0
+          HX2_CI=1 OUT=smoke HUMEM_HOST_LANE=compare1 HUMEM_HOST_CPUS=0,1 HUMEMOPS_JOB=ci \
+            taskset -c 0,1 bash ./run_ab.sh || rc=$?
+          grep -v -E '^[0-9a-f]{64}  ' smoke/env.txt || true
+          if [ "$rc" != 0 ]; then tail -n 40 smoke/sync.log || true; tail -n 120 smoke/server.log || true; exit "$rc"; fi
+          test -z "$(docker ps -aq --filter name=hx2s-server)"
+          grep -q '^SMOKE PASSED' smoke/analysis.txt
+          test -z "$(ls smoke/rounds)"
+      - name: Pace of one round with the main call counts (block wall times only)
+        run: |
+          cd "$RUNNER_TEMP/kit"
+          rc=0
+          start=$SECONDS
+          HX2_CI=1 OUT=pace HUMEM_HOST_LANE=compare1 HUMEM_HOST_CPUS=0,1 HUMEMOPS_JOB=ci \
+            taskset -c 0,1 bash ./run_ab.sh || rc=$?
+          echo "whole pace job including environments and server start: $((SECONDS - start)) s"
+          grep -E '^server at the end' pace/env.txt || true
+          if [ "$rc" != 0 ]; then tail -n 120 pace/server.log || true; exit "$rc"; fi
+          test -z "$(ls pace/rounds)"
