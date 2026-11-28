@@ -58,6 +58,8 @@ jobs:
           cd "$kit"
           find . -type f ! -name SHA256SUMS -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > SHA256SUMS
           sha256sum hx2_server.py run_ab.sh config.env arms/*/*
+          # one line to compare a copy of this folder against: the digest of the list of every file's sum
+          echo "files $(wc -l < SHA256SUMS), digest of the list $(sha256sum < SHA256SUMS)"
       - uses: actions/upload-artifact@v4
         with:
           name: httpx-lock
