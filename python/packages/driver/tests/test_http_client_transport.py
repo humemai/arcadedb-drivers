@@ -275,7 +275,7 @@ def outcome(db: ArcadeDBDatabase, command: str, **kwargs: Any) -> tuple[Any, ...
 def test_the_default_transport_is_httpx(fake: FakeArcadeDB) -> None:
     with ArcadeDBServer(base_url=fake.url) as srv:
         srv.db("d").query(language="sql", command="SELECT 1")
-    assert fake.seen[0].headers["user-agent"].startswith("python-httpx/")
+    assert fake.seen[0].headers["user-agent"].startswith("python-httpx2/")
 
 
 def test_http_client_sends_its_own_user_agent_and_httpx_defaults(fake: FakeArcadeDB) -> None:
@@ -592,8 +592,8 @@ def test_streams_and_other_calls_stay_on_httpx(fake: FakeArcadeDB) -> None:
     assert len(events) == 3
     agents = [s.headers["user-agent"] for s in fake.seen]
     assert agents[0] == "arcadedb-driver"
-    assert agents[1].startswith("python-httpx/")
-    assert agents[2].startswith("python-httpx/")
+    assert agents[1].startswith("python-httpx2/")
+    assert agents[2].startswith("python-httpx2/")
 
 
 def test_with_token_keeps_the_transport(fake: FakeArcadeDB) -> None:
